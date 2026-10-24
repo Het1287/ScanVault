@@ -7,15 +7,6 @@ Scan, organize, lock and back up your documents, with your files staying in your
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
 
-
-<!-- Replace with real screenshots: put images in /screenshots and update the paths -->
-<p align="center">
-  <img src="screenshots/home.png" width="22%" />
-  <img src="screenshots/scan.png" width="22%" />
-  <img src="screenshots/editor.png" width="22%" />
-  <img src="screenshots/settings.png" width="22%" />
-</p>
-
 ---
 
 ## 📥 Download
@@ -26,8 +17,6 @@ Get the latest APK from the [**Releases page**](https://github.com/Het1287/ScanV
 1. Download the `.apk` file on your Android phone.
 2. Open it. If asked, allow **"Install unknown apps"** for your browser or file manager.
 3. Tap **Install**, then open ScanVault.
-
-**Requirements:** Android 7.0 (API 24) or higher. <!-- set your real minSdk -->
 
 ---
 

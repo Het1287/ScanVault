@@ -4,6 +4,9 @@
 Scan, organize, lock and back up your documents, with your files staying in your hands.
 
 ![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
+![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
+
 
 <!-- Replace with real screenshots: put images in /screenshots and update the paths -->
 <p align="center">

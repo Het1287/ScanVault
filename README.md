@@ -77,4 +77,4 @@ Get the latest APK from the [**Releases page**](https://github.com/Het1287/ScanV
 
 ---
 
-<p align="center">Made with ❤️ by Het in Gujarat, India</p>
+<p align="center">Made with ❤️ by Het Soni </p>

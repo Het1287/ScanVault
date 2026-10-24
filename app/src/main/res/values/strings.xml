@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">ScanVault</string>
+    <string name="shortcut_quick_scan_short">Quick Scan</string>
+    <string name="shortcut_quick_scan_long">Scan New Document</string>
+    <string name="shortcut_recents_short">Recents</string>
+    <string name="shortcut_recents_long">View Recent Documents</string>
+    <string name="shortcut_import_short">Import</string>
+    <string name="shortcut_import_long">Import Image or PDF</string>
+    <string name="widget_name">ScanVault Actions</string>
+    <string name="widget_description">Quick access to scan, search, and recents</string>
+
+    <!-- Trash Strings -->
+    <string name="trash_title">Trash</string>
+    <string name="trash_empty_title">Empty Trash?</string>
+    <string name="trash_empty_message">All documents in Trash will be permanently deleted from this device. This cannot be undone.</string>
+    <string name="trash_empty_confirm">Empty Trash</string>
+    <string name="trash_delete_forever_title">Delete Forever?</string>
+    <string name="trash_empty_state">Trash is empty</string>
+    <string name="trash_info_banner">Documents in Trash are permanently purged after 30 days. Trashed documents are not synced to Google Drive.</string>
+    <string name="action_restore">Restore</string>
+    <string name="action_delete_forever">Delete Forever</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- MultiSelect Strings -->
+    <string name="action_move">Move</string>
+    <string name="action_tags">Tags</string>
+    <string name="action_share">Share</string>
+    <string name="action_backup">Backup</string>
+    <string name="action_lock">Lock</string>
+    <string name="action_trash">Trash</string>
+
+    <!-- Expiry Strings -->
+    <string name="doc_expiry_title">Document Expiry Date</string>
+    <string name="doc_expiry_description">Track renewal deadlines for IDs, passports, warranties, licenses, or agreements. ScanVault notifies you at 30, 7, and 1 day before expiration.</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_save">Save</string>
+    <string name="no_expiry_set">No expiry set</string>
+
+    <!-- Support & Feedback Strings -->
+    <string name="support_section_title">Support</string>
+    <string name="support_send_feedback_title">Send feedback</string>
+    <string name="support_send_feedback_subtitle">Share an idea or suggestion</string>
+    <string name="support_report_bug_title">Report a bug</string>
+    <string name="support_report_bug_subtitle">Tell us what went wrong</string>
+    <string name="feedback_chooser_title">Send feedback</string>
+    <string name="feedback_no_email_app">No email app found</string>
+    <string name="feedback_subject_feedback">ScanVault feedback (v%1$s)</string>
+    <string name="feedback_subject_bug">ScanVault bug report (v%1$s)</string>
+    <string name="feedback_body_prompt">Describe your feedback here:</string>
+</resources>

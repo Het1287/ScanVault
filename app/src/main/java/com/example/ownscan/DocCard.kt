@@ -1066,33 +1066,6 @@ fun RenameDocumentDialog(
 }
 
 @Composable
-fun PillButton(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val colors = LocalAppColors.current
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (isSelected) colors.accent else colors.cardSubtle)
-            .border(1.dp, if (isSelected) colors.accent else colors.cardBorder, RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 22.dp, vertical = 7.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            color = if (isSelected) Color.White else colors.textMuted,
-            fontSize = 13.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-        )
-    }
-}
-
-
-
-@Composable
 fun SharePdfRenameDialog(
     initialName: String,
     onDismiss: () -> Unit,

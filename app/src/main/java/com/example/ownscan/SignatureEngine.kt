@@ -106,31 +106,6 @@ object SignatureEngine {
     }
 
     /**
-     * Stamped onto destination bitmap with position, size, and rotation.
-     */
-    fun stampSignatureOnBitmap(
-        baseBitmap: Bitmap,
-        signatureBitmap: Bitmap,
-        destRect: RectF,
-        rotationDegrees: Float = 0f
-    ): Bitmap {
-        val result = baseBitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas = Canvas(result)
-
-        val matrix = Matrix().apply {
-            val srcRect = RectF(0f, 0f, signatureBitmap.width.toFloat(), signatureBitmap.height.toFloat())
-            setRectToRect(srcRect, destRect, Matrix.ScaleToFit.FILL)
-            if (rotationDegrees != 0f) {
-                postRotate(rotationDegrees, destRect.centerX(), destRect.centerY())
-            }
-        }
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-        canvas.drawBitmap(signatureBitmap, matrix, paint)
-        return result
-    }
-
-    /**
      * Renders a list of SignaturePaths into a trimmed transparent Bitmap.
      */
     fun pathsToBitmap(paths: List<SignaturePath>, canvasWidth: Int, canvasHeight: Int): Bitmap? {

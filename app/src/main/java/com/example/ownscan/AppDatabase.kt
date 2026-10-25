@@ -85,16 +85,6 @@ data class DocumentMetadataEntity(
     fun getTagsList(): List<String> {
         return if (tagsCsv.isBlank()) emptyList() else tagsCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }
     }
-
-    fun toDocMeta(): DocMeta {
-        return DocMeta(
-            tags = getTagsList(),
-            isLocked = isLocked,
-            expiryDate = expiryDate,
-            trashedDate = trashedDate,
-            isOcrDone = isOcrDone
-        )
-    }
 }
 
 // -------------------------------------------------------------
@@ -103,9 +93,6 @@ data class DocumentMetadataEntity(
 
 @Dao
 interface DocumentDao {
-    @Query("SELECT * FROM documents_metadata WHERE trashedDate IS NULL ORDER BY timestamp DESC")
-    fun getAllActiveDocuments(): Flow<List<DocumentMetadataEntity>>
-
     @Query("SELECT * FROM documents_metadata WHERE trashedDate IS NULL ORDER BY timestamp DESC")
     fun getAllActiveDocumentsList(): List<DocumentMetadataEntity>
 
@@ -150,9 +137,6 @@ interface DocumentDao {
 
     @Query("DELETE FROM documents_metadata WHERE trashedDate IS NOT NULL")
     fun deleteAllTrashed(): Int
-
-    @Query("DELETE FROM documents_metadata WHERE trashedDate IS NOT NULL AND trashedDate < :thresholdTime")
-    fun purgeOldTrashed(thresholdTime: Long): Int
 }
 
 // -------------------------------------------------------------
@@ -221,21 +205,6 @@ data class FolderEntity(
 
 @Dao
 interface FolderDao {
-    @Query("SELECT * FROM folders ORDER BY name ASC")
-    fun getAllFolders(): Flow<List<FolderEntity>>
-
-    @Query("SELECT * FROM folders ORDER BY name ASC")
-    fun getAllFoldersList(): List<FolderEntity>
-
-    @Query("SELECT * FROM folders WHERE parentFolderId IS NULL ORDER BY name ASC")
-    fun getRootFolders(): List<FolderEntity>
-
-    @Query("SELECT * FROM folders WHERE parentFolderId = :parentId ORDER BY name ASC")
-    fun getSubfolders(parentId: String): List<FolderEntity>
-
-    @Query("SELECT * FROM folders WHERE id = :id LIMIT 1")
-    fun getById(id: String): FolderEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertOrUpdate(folder: FolderEntity): Long
 
@@ -244,9 +213,6 @@ interface FolderDao {
 
     @Query("DELETE FROM folders WHERE id = :id")
     fun deleteById(id: String): Int
-
-    @Query("DELETE FROM folders WHERE id = :id OR parentFolderId = :id")
-    fun deleteWithChildren(id: String): Int
 
     @Query("DELETE FROM folders")
     fun clearAll(): Int
@@ -600,8 +566,6 @@ object DocumentRepository {
         }
         thumbnailMemoryCache.evictAll()
     }
-
-    suspend fun permanentlyDelete(context: Context, doc: LocalDoc) = permanentlyDeleteDoc(context, doc.folderName, doc.directory)
 
     suspend fun emptyTrash(context: Context) = withContext(Dispatchers.IO) {
         val db = AppDatabase.getInstance(context)

@@ -3,7 +3,6 @@ package com.example.ownscan
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import java.io.File
 import java.util.regex.Pattern
 
 enum class SortOption(val label: String) {

@@ -264,47 +264,6 @@ fun appendImageFileToDoc(
     return fallbackFile
 }
 
-suspend fun movePageToTrash(
-    context: Context,
-    doc: LocalDoc,
-    fileToDelete: File,
-    pageIndex: Int
-) {
-    val stamp = System.currentTimeMillis()
-    val trashedFolderName = "${stamp}__${doc.displayName}_Page_${pageIndex + 1}"
-    val trashedDir = File(getPrivateDocsDir(context), trashedFolderName)
-    trashedDir.mkdirs()
-
-    if (doc.isLocked) {
-        val encFile = File(doc.directory, "${fileToDelete.name}.enc")
-        if (encFile.exists()) {
-            val destEnc = File(trashedDir, "${fileToDelete.name}.enc")
-            encFile.renameTo(destEnc)
-        }
-        val plainInDoc = File(doc.directory, fileToDelete.name)
-        if (plainInDoc.exists()) {
-            plainInDoc.renameTo(File(trashedDir, fileToDelete.name))
-        }
-        fileToDelete.delete()
-
-        // Copy .dek.enc into trashedDir so the trashed page can be unlocked if restored
-        val dekFile = File(doc.directory, ".dek.enc")
-        if (dekFile.exists()) {
-            dekFile.copyTo(File(trashedDir, ".dek.enc"), overwrite = true)
-        }
-
-        File(trashedDir, "order.txt").writeText(fileToDelete.name)
-        DocMeta.writeToDir(trashedDir, DocMeta(isLocked = true, trashedDate = stamp))
-    } else {
-        val destFile = File(trashedDir, fileToDelete.name)
-        fileToDelete.renameTo(destFile)
-        File(trashedDir, "order.txt").writeText(fileToDelete.name)
-        DocMeta.writeToDir(trashedDir, DocMeta(isLocked = false, trashedDate = stamp))
-    }
-
-    DocumentRepository.indexExistingDocs(context)
-}
-
 suspend fun movePagesToTrash(
     context: Context,
     doc: LocalDoc,

@@ -119,16 +119,6 @@ fun exportPagesAsPdf(context: Context, baseName: String, files: List<File>): Uri
     }
 }
 
-fun exportPagesAsJpg(context: Context, baseName: String, files: List<File>): Int {
-    var count = 0
-    files.forEachIndexed { idx, file ->
-        if (exportSinglePageJpg(context, baseName, file, idx + 1) != null) {
-            count++
-        }
-    }
-    return count
-}
-
 fun exportSinglePageJpg(context: Context, baseName: String, file: File, pageNumber: Int): Uri? {
     return try {
         val fileName = "${baseName}_page_${pageNumber}.jpg"

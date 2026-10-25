@@ -73,7 +73,8 @@ fun MainApp(
     var favoritePaths by remember { mutableStateOf(loadFavoritePaths(activity)) }
 
     // Instant local cache initialization so cloud icon is visible immediately
-    var backedUpDocFolderNames by remember { mutableStateOf(DriveBackupManager.getLocalCachedDocIds(activity)) }
+    val backedUpDocFolderNames by DriveBackupManager.backedUpDocFolderNames.collectAsState()
+    val uploadingDocFolderNames by DriveBackupManager.uploadingDocFolderNames.collectAsState()
 
     var activeFolder by remember { mutableStateOf<String?>(null) }
     var selectedDocForDetail by remember { mutableStateOf<LocalDoc?>(null) }
@@ -106,6 +107,7 @@ fun MainApp(
                 notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+        DriveBackupManager.initLocalCache(activity)
         ExpiryReminderWorker.schedule(activity.applicationContext)
     }
 
@@ -183,6 +185,9 @@ fun MainApp(
     var selectedDocPaths by remember { mutableStateOf(setOf<String>()) }
     var showBatchDeleteConfirm by remember { mutableStateOf(false) }
     var showBatchMoveDialog by remember { mutableStateOf(false) }
+    var showBatchSaveDialog by remember { mutableStateOf(false) }
+    var isBatchSaving by remember { mutableStateOf(false) }
+    var batchSaveProgressText by remember { mutableStateOf("") }
     var showMergeDocsDialog by remember { mutableStateOf(false) }
     var isMergingDocs by remember { mutableStateOf(false) }
     var showBatchTagDialog by remember { mutableStateOf(false) }
@@ -205,15 +210,15 @@ fun MainApp(
             coroutineScope.launch {
                 when (val res = DriveBackupManager.getBackedUpDocFolderNames(activity, account)) {
                     is DriveResult.Success -> {
-                        backedUpDocFolderNames = res.data
+                        DriveBackupManager.setLocalCachedDocIds(activity, res.data)
                     }
                     is DriveResult.Failure -> {
-                        backedUpDocFolderNames = DriveBackupManager.getLocalCachedDocIds(activity)
+                        DriveBackupManager.initLocalCache(activity)
                     }
                 }
             }
         } else {
-            backedUpDocFolderNames = DriveBackupManager.getLocalCachedDocIds(activity)
+            DriveBackupManager.initLocalCache(activity)
         }
     }
 
@@ -252,7 +257,7 @@ fun MainApp(
 
                 // Real-time local state update so folder files show cloud icon immediately
                 updatedBackedUpSet.add(doc.folderName)
-                backedUpDocFolderNames = updatedBackedUpSet.toSet()
+                DriveBackupManager.addDocIdToLocalCache(activity, doc.folderName)
             }
 
             isGlobalSyncing = false
@@ -630,7 +635,9 @@ fun MainApp(
         )
     } else {
         Scaffold(
+            modifier = Modifier.fillMaxSize(),
             containerColor = colors.background,
+            contentWindowInsets = WindowInsets.statusBars,
             bottomBar = {
                 if (isSelectionMode) {
                     MultiSelectBottomBar(
@@ -657,11 +664,58 @@ fun MainApp(
                         onShare = {
                             if (selectedDocPaths.isNotEmpty()) {
                                 val docsToShare = storedDocs.filter { selectedDocPaths.contains(it.directory.absolutePath) }
-                                val allImages = docsToShare.flatMap { it.imageFiles }
-                                if (allImages.isNotEmpty()) {
-                                    shareMultipleImages(activity, allImages)
-                                    selectedDocPaths = emptySet()
-                                    isSelectionMode = false
+                                val hasLockedDocs = docsToShare.any { it.isLocked }
+                                if (hasLockedDocs) {
+                                    BiometricAuthManager.authenticate(
+                                        activity = activity as FragmentActivity,
+                                        title = "Unlock Documents to Share",
+                                        subtitle = "Biometric authentication required to share locked documents",
+                                        onSuccess = {
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                val allImages = mutableListOf<File>()
+                                                for (d in docsToShare) {
+                                                    val resolved = resolveDecryptedImageFiles(activity, d)
+                                                    allImages.addAll(resolved)
+                                                }
+                                                withContext(Dispatchers.Main) {
+                                                    if (allImages.isNotEmpty()) {
+                                                        shareMultipleImages(activity, allImages)
+                                                        selectedDocPaths = emptySet()
+                                                        isSelectionMode = false
+                                                    } else {
+                                                        Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onError = { err ->
+                                            Toast.makeText(activity, err.ifBlank { "Authentication required to share" }, Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                } else {
+                                    val allImages = docsToShare.flatMap { it.imageFiles }
+                                    if (allImages.isNotEmpty()) {
+                                        shareMultipleImages(activity, allImages)
+                                        selectedDocPaths = emptySet()
+                                        isSelectionMode = false
+                                    }
+                                }
+                            }
+                        },
+                        onSaveToDevice = {
+                            if (selectedDocPaths.isNotEmpty()) {
+                                val selectedDocs = storedDocs.filter { selectedDocPaths.contains(it.directory.absolutePath) }
+                                val hasLockedDocs = selectedDocs.any { it.isLocked }
+                                if (hasLockedDocs) {
+                                    BiometricAuthManager.authenticate(
+                                        activity = activity as FragmentActivity,
+                                        title = "Unlock Documents to Save",
+                                        subtitle = "Biometric authentication required to export locked documents",
+                                        onSuccess = { showBatchSaveDialog = true },
+                                        onError = { err -> Toast.makeText(activity, err, Toast.LENGTH_SHORT).show() }
+                                    )
+                                } else {
+                                    showBatchSaveDialog = true
                                 }
                             }
                         },
@@ -938,7 +992,7 @@ fun MainApp(
                             favoritePaths = favoritePaths,
                             backedUpDocFolderNames = backedUpDocFolderNames,
                             sessionUnlockedFolders = sessionUnlockedFolders,
-                            onUpdateBackedUpList = { updatedSet -> backedUpDocFolderNames = updatedSet },
+                            onUpdateBackedUpList = { updatedSet -> DriveBackupManager.setLocalCachedDocIds(activity, updatedSet) },
                             onTriggerCloudSync = { startGlobalSync("PullToSync") },
                             isSyncInProgress = isGlobalSyncing,
                             activeFolder = activeFolder,
@@ -1243,6 +1297,68 @@ fun MainApp(
         )
     }
 
+    if (showBatchSaveDialog || isBatchSaving) {
+        val selectedDocs = storedDocs.filter { selectedDocPaths.contains(it.directory.absolutePath) }
+        SaveToDeviceDialog(
+            docTitle = "${selectedDocs.size} documents",
+            isSaving = isBatchSaving,
+            progressText = batchSaveProgressText,
+            onDismiss = { showBatchSaveDialog = false },
+            onSaveJpg = {
+                isBatchSaving = true
+                batchSaveProgressText = "Saving documents as JPG..."
+                coroutineScope.launch {
+                    val res = SaveToDeviceManager.saveMultipleDocs(
+                        context = activity,
+                        docs = selectedDocs,
+                        asPdf = false,
+                        onProgress = { current, total, name ->
+                            batchSaveProgressText = "Saving $current of $total: $name"
+                        }
+                    )
+                    isBatchSaving = false
+                    showBatchSaveDialog = false
+                    when (res) {
+                        is SaveToDeviceResult.Success -> {
+                            Toast.makeText(activity, "Saved ${res.savedCount} images to Pictures/ScanVault", Toast.LENGTH_LONG).show()
+                            isSelectionMode = false
+                            selectedDocPaths = emptySet()
+                        }
+                        is SaveToDeviceResult.Failure -> {
+                            Toast.makeText(activity, res.message, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            },
+            onSavePdf = {
+                isBatchSaving = true
+                batchSaveProgressText = "Saving documents as PDF..."
+                coroutineScope.launch {
+                    val res = SaveToDeviceManager.saveMultipleDocs(
+                        context = activity,
+                        docs = selectedDocs,
+                        asPdf = true,
+                        onProgress = { current, total, name ->
+                            batchSaveProgressText = "Saving $current of $total: $name"
+                        }
+                    )
+                    isBatchSaving = false
+                    showBatchSaveDialog = false
+                    when (res) {
+                        is SaveToDeviceResult.Success -> {
+                            Toast.makeText(activity, "Saved ${res.savedCount} documents to Documents/ScanVault", Toast.LENGTH_LONG).show()
+                            isSelectionMode = false
+                            selectedDocPaths = emptySet()
+                        }
+                        is SaveToDeviceResult.Failure -> {
+                            Toast.makeText(activity, res.message, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+        )
+    }
+
     if (multiSelectLockedCloudState != null) {
         val (lockedDocs, unlockedDocs) = multiSelectLockedCloudState!!
         LockedDocCloudBackupDialog(
@@ -1279,61 +1395,4 @@ fun MainApp(
         )
     }
 
-    if (showBatchMoveDialog && selectedDocPaths.isNotEmpty()) {
-        AlertDialog(
-            containerColor = colors.surface,
-            onDismissRequest = { showBatchMoveDialog = false },
-            title = { Text("Move ${selectedDocPaths.size} Document(s)", color = colors.textPrimary, fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Select destination folder:", color = colors.textMuted, fontSize = 14.sp)
-
-                    if (activeFolder != null) {
-                        OutlinedButton(
-                            onClick = {
-                                selectedDocPaths.forEach { path ->
-                                    moveDocToRoot(activity, File(path))
-                                }
-                                selectedDocPaths = emptySet()
-                                isSelectionMode = false
-                                showBatchMoveDialog = false
-                                refreshDocs()
-                                Toast.makeText(activity, "Moved to Root", Toast.LENGTH_SHORT).show()
-                            },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.accent),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("📄 Move to Root (Unfiled)", color = colors.accent)
-                        }
-                    }
-
-                    userFolders.forEach { folder ->
-                        if (folder.name != activeFolder) {
-                            Button(
-                                onClick = {
-                                    selectedDocPaths.forEach { path ->
-                                        moveDocToFolder(activity, File(path), folder.name)
-                                    }
-                                    selectedDocPaths = emptySet()
-                                    isSelectionMode = false
-                                    showBatchMoveDialog = false
-                                    refreshDocs()
-                                    Toast.makeText(activity, "Moved to '${folder.name}'", Toast.LENGTH_SHORT).show()
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = colors.cardSubtle),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("📁 ${folder.name}", color = colors.textPrimary)
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showBatchMoveDialog = false }) { Text("Cancel", color = colors.textMuted) }
-            }
-        )
-    }
-
-    }
+}

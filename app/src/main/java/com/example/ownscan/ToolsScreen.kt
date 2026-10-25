@@ -978,6 +978,7 @@ fun ToolsScreenDesign(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
@@ -1025,10 +1026,6 @@ fun ToolsScreenDesign(
                     }
                     if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

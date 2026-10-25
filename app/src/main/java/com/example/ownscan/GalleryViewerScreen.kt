@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
@@ -188,6 +190,7 @@ private fun GalleryPageViewerItem(
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(isCurrentPage) {
         if (!isCurrentPage) {
@@ -220,16 +223,57 @@ private fun GalleryPageViewerItem(
 
         fun clampOffset(x: Float, y: Float, curScale: Float): Pair<Float, Float> {
             val bmp = currentHighResBitmap ?: return Pair(0f, 0f)
-            if (curScale <= 1.05f) return Pair(0f, 0f)
+            if (curScale <= 1.02f) return Pair(0f, 0f)
             val bmpAspect = bmp.width.toFloat() / bmp.height.toFloat().coerceAtLeast(1f)
             val containerAspect = maxWidthPx / maxHeightPx.coerceAtLeast(1f)
-            val dispWidth = if (bmpAspect > containerAspect) maxWidthPx else maxHeightPx * bmpAspect
-            val dispHeight = if (bmpAspect > containerAspect) maxWidthPx / bmpAspect else maxHeightPx
-            val scaledW = dispWidth * curScale
-            val scaledH = dispHeight * curScale
-            val maxPanX = if (scaledW > maxWidthPx) (scaledW - maxWidthPx) / 2f + 80f else (maxWidthPx * (curScale - 1f) / 2f + 50f)
-            val maxPanY = if (scaledH > maxHeightPx) (scaledH - maxHeightPx) / 2f + 80f else (maxHeightPx * (curScale - 1f) / 2f + 50f)
+            val contentWidth = if (bmpAspect > containerAspect) maxWidthPx else maxHeightPx * bmpAspect
+            val contentHeight = if (bmpAspect > containerAspect) maxWidthPx / bmpAspect else maxHeightPx
+            val maxPanX = kotlin.math.max(0f, (contentWidth * curScale - maxWidthPx) / 2f)
+            val maxPanY = kotlin.math.max(0f, (contentHeight * curScale - maxHeightPx) / 2f)
             return Pair(x.coerceIn(-maxPanX, maxPanX), y.coerceIn(-maxPanY, maxPanY))
+        }
+
+        fun toggleZoomAnimated() {
+            coroutineScope.launch {
+                if (currentScale > 1.05f) {
+                    val startScale = currentScale
+                    val startX = currentOffsetX
+                    val startY = currentOffsetY
+                    androidx.compose.animation.core.animate(
+                        initialValue = 0f,
+                        targetValue = 1f,
+                        animationSpec = tween(durationMillis = 250)
+                    ) { fraction, _ ->
+                        scale = startScale + (1f - startScale) * fraction
+                        offsetX = startX * (1f - fraction)
+                        offsetY = startY * (1f - fraction)
+                        currentOnScaleChange(scale)
+                    }
+                    scale = 1f
+                    offsetX = 0f
+                    offsetY = 0f
+                    currentOnScaleChange(1f)
+                } else {
+                    val targetScale = 2.5f
+                    val (targetX, targetY) = clampOffset(0f, 0f, targetScale)
+                    val startScale = currentScale
+                    androidx.compose.animation.core.animate(
+                        initialValue = startScale,
+                        targetValue = targetScale,
+                        animationSpec = tween(durationMillis = 250)
+                    ) { valScale, _ ->
+                        scale = valScale
+                        val (cx, cy) = clampOffset(targetX, targetY, valScale)
+                        offsetX = cx
+                        offsetY = cy
+                        currentOnScaleChange(valScale)
+                    }
+                    scale = targetScale
+                    offsetX = targetX
+                    offsetY = targetY
+                    currentOnScaleChange(targetScale)
+                }
+            }
         }
 
         if (highResBitmap != null) {
@@ -263,17 +307,14 @@ private fun GalleryPageViewerItem(
                                     val zoom = event.calculateZoom()
                                     val pan = event.calculatePan()
                                     if (zoom != 1f) {
-                                        val zoomSensitivity = 1.6f
-                                        val effectiveZoom = 1f + (zoom - 1f) * zoomSensitivity
-                                        val newScale = (currentScale * effectiveZoom).coerceIn(1f, 6f)
-                                        scale = if (newScale < 1.05f) 1f else newScale
+                                        val newScale = (currentScale * zoom).coerceIn(1f, 5f)
+                                        scale = if (newScale < 1.02f) 1f else newScale
                                         currentOnScaleChange(scale)
                                         event.changes.forEach { it.consume() }
                                     }
-                                    if (scale > 1.05f) {
-                                        val panSensitivity = 1.45f
-                                        val rawX = currentOffsetX + pan.x * panSensitivity
-                                        val rawY = currentOffsetY + pan.y * panSensitivity
+                                    if (scale > 1.02f) {
+                                        val rawX = currentOffsetX + pan.x
+                                        val rawY = currentOffsetY + pan.y
                                         val (clampedX, clampedY) = clampOffset(rawX, rawY, scale)
                                         offsetX = clampedX
                                         offsetY = clampedY
@@ -288,15 +329,16 @@ private fun GalleryPageViewerItem(
                                     if (dragDist > 10f) {
                                         isDragOrPinch = true
                                     }
-                                    if (currentScale > 1.05f) {
+                                    if (currentScale > 1.02f) {
                                         val pan = change.position - change.previousPosition
-                                        val panSensitivity = 1.45f
-                                        val rawX = currentOffsetX + pan.x * panSensitivity
-                                        val rawY = currentOffsetY + pan.y * panSensitivity
+                                        val rawX = currentOffsetX + pan.x
+                                        val rawY = currentOffsetY + pan.y
                                         val (clampedX, clampedY) = clampOffset(rawX, rawY, currentScale)
-                                        offsetX = clampedX
-                                        offsetY = clampedY
-                                        change.consume()
+                                        if (clampedX != currentOffsetX || clampedY != currentOffsetY) {
+                                            offsetX = clampedX
+                                            offsetY = clampedY
+                                            change.consume()
+                                        }
                                     }
                                 }
                             } while (active.isNotEmpty())
@@ -304,18 +346,7 @@ private fun GalleryPageViewerItem(
                             if (!isDragOrPinch && (System.currentTimeMillis() - downTime) < 300) {
                                 val now = System.currentTimeMillis()
                                 if (now - lastTapTime < 350 && (downPos - lastTapPos).getDistance() < 100f) {
-                                    if (currentScale > 1.05f) {
-                                        scale = 1f
-                                        offsetX = 0f
-                                        offsetY = 0f
-                                        currentOnScaleChange(1f)
-                                    } else {
-                                        scale = 2.5f
-                                        val (cx, cy) = clampOffset(0f, 0f, 2.5f)
-                                        offsetX = cx
-                                        offsetY = cy
-                                        currentOnScaleChange(2.5f)
-                                    }
+                                    toggleZoomAnimated()
                                     lastTapTime = 0L
                                 } else {
                                     lastTapTime = now

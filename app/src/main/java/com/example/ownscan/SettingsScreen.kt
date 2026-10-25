@@ -535,6 +535,7 @@ fun SettingsScreenDesign(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // GOOGLE DRIVE SYNC CARD
@@ -1360,9 +1361,6 @@ fun SettingsScreenDesign(
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-            }
         }
     }
 }

@@ -14,6 +14,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -321,6 +323,8 @@ fun FilesScreenDesign(
                                 showCreateFolderDialog = false
                                 newFolderName = ""
                                 Toast.makeText(activity, "Folder created!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(activity, "Failed to create folder", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
@@ -455,6 +459,7 @@ fun FilesScreenDesign(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .padding(horizontal = 22.dp)
             .nestedScroll(nestedScrollConnection)
     ) {
@@ -533,22 +538,28 @@ fun FilesScreenDesign(
                 if (activeFolder != null) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
                             .background(colors.accent)
                             .clickable { onBackFolder() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("❮", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text("❮", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
+                    Text(
+                        text = activeFolder,
+                        color = colors.textPrimary,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Text(
+                        text = "All Files",
+                        color = colors.textPrimary,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-
-                Text(
-                    text = activeFolder?.let { "📁 $it" } ?: "All Files",
-                    color = colors.textPrimary,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold
-                )
             }
 
             Row(
@@ -837,71 +848,43 @@ fun FilesScreenDesign(
 
         LazyColumn(
             modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (activeFolder == null && searchQuery.isBlank() && selectedCollection == SmartCollection.ALL && selectedTagFilter == null && !isSelectionMode) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Folders", color = colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = "+ New",
-                            color = colors.accent,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable {
-                                newFolderName = ""
-                                showCreateFolderDialog = true
-                            }
-                        )
-                    }
-                }
 
-                if (userFolders.isEmpty()) {
+            if (searchQuery.isBlank() && selectedCollection == SmartCollection.ALL && selectedTagFilter == null && !isSelectionMode) {
+                if (activeFolder == null) {
                     item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .clip(RoundedCornerShape(26.dp))
-                                .clickable {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Folders", color = colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "+ New",
+                                color = colors.accent,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
                                     newFolderName = ""
                                     showCreateFolderDialog = true
-                                },
-                            shape = RoundedCornerShape(26.dp),
-                            colors = CardDefaults.cardColors(containerColor = colors.surface),
-                            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(colors.cardBorder))
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 20.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("📁", fontSize = 24.sp)
-                                Spacer(modifier = Modifier.width(14.dp))
-                                Text("Tap + New to create a folder", color = colors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            }
+                                }
+                            )
                         }
                     }
-                } else {
-                    items(userFolders, key = { it.name }) { folder ->
-                        Box {
+
+                    if (userFolders.isEmpty()) {
+                        item {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp)
                                     .clip(RoundedCornerShape(26.dp))
-                                    .combinedClickable(
-                                        onClick = { onSelectFolder(folder.name) },
-                                        onLongClick = {
-                                            folderForAction = folder
-                                            showFolderMenu = true
-                                        }
-                                    ),
+                                    .clickable {
+                                        newFolderName = ""
+                                        showCreateFolderDialog = true
+                                    },
                                 shape = RoundedCornerShape(26.dp),
                                 colors = CardDefaults.cardColors(containerColor = colors.surface),
                                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(colors.cardBorder))
@@ -914,62 +897,94 @@ fun FilesScreenDesign(
                                 ) {
                                     Text("📁", fontSize = 24.sp)
                                     Spacer(modifier = Modifier.width(14.dp))
-                                    Text(folder.name, color = colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                                    Text("${folder.docCount}", color = colors.textMuted, fontSize = 13.sp)
+                                    Text("Tap + New to create a folder", color = colors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
+                        }
+                    } else {
+                        items(userFolders, key = { it.name }) { folder ->
+                            Box {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                                        .clip(RoundedCornerShape(26.dp))
+                                        .combinedClickable(
+                                            onClick = { onSelectFolder(folder.name) },
+                                            onLongClick = {
+                                                folderForAction = folder
+                                                showFolderMenu = true
+                                            }
+                                        ),
+                                    shape = RoundedCornerShape(26.dp),
+                                    colors = CardDefaults.cardColors(containerColor = colors.surface),
+                                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(colors.cardBorder))
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 20.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("📁", fontSize = 24.sp)
+                                        Spacer(modifier = Modifier.width(14.dp))
+                                        Text(folder.name, color = colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                        Text("${folder.docCount}", color = colors.textMuted, fontSize = 13.sp)
+                                    }
+                                }
 
-                            DropdownMenu(
-                                expanded = showFolderMenu && folderForAction?.name == folder.name,
-                                onDismissRequest = { showFolderMenu = false },
-                                modifier = Modifier.background(colors.surface)
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Rename Folder", color = colors.textPrimary) },
-                                    leadingIcon = { Text("✏️") },
-                                    onClick = {
-                                        showFolderMenu = false
-                                        renameFolderText = folder.name
-                                        showRenameFolderDialog = true
-                                    }
-                                )
-                                val docsInFolder = storedDocs.filter { it.parentFolder == folder.name }
-                                val anyUnlockedInFolder = docsInFolder.any { !it.isLocked }
-                                DropdownMenuItem(
-                                    text = { Text(if (anyUnlockedInFolder) "Lock Folder" else "Unlock Folder", color = colors.textPrimary) },
-                                    leadingIcon = { Text(if (anyUnlockedInFolder) "🔒" else "🔓") },
-                                    onClick = {
-                                        showFolderMenu = false
-                                        if (anyUnlockedInFolder) {
-                                            folderForLockGate = folder
-                                        } else {
-                                            BiometricAuthManager.authenticate(
-                                                activity = activity as FragmentActivity,
-                                                title = "Unlock Folder '${folder.name}'",
-                                                onSuccess = {
-                                                    coroutineScope.launch {
-                                                        docsInFolder.forEach { doc ->
-                                                            DocumentRepository.updateDocLockStatus(activity, doc, false)
-                                                        }
-                                                        onRefresh()
-                                                        Toast.makeText(activity, "Folder '${folder.name}' unlocked", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                },
-                                                onError = { err ->
-                                                    Toast.makeText(activity, err, Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
+                                DropdownMenu(
+                                    expanded = showFolderMenu && folderForAction?.name == folder.name,
+                                    onDismissRequest = { showFolderMenu = false },
+                                    modifier = Modifier.background(colors.surface)
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Rename Folder", color = colors.textPrimary) },
+                                        leadingIcon = { Text("✏️") },
+                                        onClick = {
+                                            showFolderMenu = false
+                                            renameFolderText = folder.name
+                                            showRenameFolderDialog = true
                                         }
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Delete Folder", color = MaterialTheme.colorScheme.error) },
-                                    leadingIcon = { Text("🗑️") },
-                                    onClick = {
-                                        showFolderMenu = false
-                                        showDeleteFolderConfirm = true
-                                    }
-                                )
+                                    )
+                                    val docsInFolder = storedDocs.filter { it.parentFolder == folder.name }
+                                    val anyUnlockedInFolder = docsInFolder.any { !it.isLocked }
+                                    DropdownMenuItem(
+                                        text = { Text(if (anyUnlockedInFolder) "Lock Folder" else "Unlock Folder", color = colors.textPrimary) },
+                                        leadingIcon = { Text(if (anyUnlockedInFolder) "🔒" else "🔓") },
+                                        onClick = {
+                                            showFolderMenu = false
+                                            if (anyUnlockedInFolder) {
+                                                folderForLockGate = folder
+                                            } else {
+                                                BiometricAuthManager.authenticate(
+                                                    activity = activity as FragmentActivity,
+                                                    title = "Unlock Folder '${folder.name}'",
+                                                    onSuccess = {
+                                                        coroutineScope.launch {
+                                                            docsInFolder.forEach { doc ->
+                                                                DocumentRepository.updateDocLockStatus(activity, doc, false)
+                                                            }
+                                                            onRefresh()
+                                                            Toast.makeText(activity, "Folder '${folder.name}' unlocked", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    },
+                                                    onError = { err ->
+                                                        Toast.makeText(activity, err, Toast.LENGTH_SHORT).show()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete Folder", color = MaterialTheme.colorScheme.error) },
+                                        leadingIcon = { Text("🗑️") },
+                                        onClick = {
+                                            showFolderMenu = false
+                                            showDeleteFolderConfirm = true
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -1052,10 +1067,6 @@ fun FilesScreenDesign(
                         onOpenLocalBackup = onNavigateToSettings
                     )
                 }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

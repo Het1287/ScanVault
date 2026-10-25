@@ -37,6 +37,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -339,6 +341,7 @@ fun FullImageEditorScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
+            .systemBarsPadding()
     ) {
         // Top Toolbar
         Row(
@@ -582,16 +585,15 @@ fun FullImageEditorScreen(
                                                     if (zoom != 1f) {
                                                         val zoomMultiplier = 1.6f
                                                         val effectiveZoom = 1f + (zoom - 1f) * zoomMultiplier
-                                                        val newScale = (zoomScale * effectiveZoom).coerceIn(1f, 6f)
+                                                        val newScale = (zoomScale * effectiveZoom).coerceIn(1f, 5f)
                                                         zoomScale = newScale
                                                         event.changes.forEach { it.consume() }
                                                     }
                                                     if (zoomScale > 1.05f) {
-                                                        val panMultiplier = 1.3f
-                                                        val maxPanX = ((displayedWidthPx * (zoomScale - 1f)) / 2f + 80f).coerceAtLeast(0f)
-                                                        val maxPanY = ((displayedHeightPx * (zoomScale - 1f)) / 2f + 80f).coerceAtLeast(0f)
-                                                        panOffsetX = (panOffsetX + pan.x * panMultiplier).coerceIn(-maxPanX, maxPanX)
-                                                        panOffsetY = (panOffsetY + pan.y * panMultiplier).coerceIn(-maxPanY, maxPanY)
+                                                        val maxPanX = ((displayedWidthPx * (zoomScale - 1f)) / 2f).coerceAtLeast(0f)
+                                                        val maxPanY = ((displayedHeightPx * (zoomScale - 1f)) / 2f).coerceAtLeast(0f)
+                                                        panOffsetX = (panOffsetX + pan.x).coerceIn(-maxPanX, maxPanX)
+                                                        panOffsetY = (panOffsetY + pan.y).coerceIn(-maxPanY, maxPanY)
                                                         event.changes.forEach { it.consume() }
                                                     } else {
                                                         panOffsetX = 0f
@@ -602,11 +604,10 @@ fun FullImageEditorScreen(
                                                     if (zoomScale > 1.05f) {
                                                         val pan = pointer.position - pointer.previousPosition
                                                         if (pan.getDistance() > 0.5f) {
-                                                            val panMultiplier = 1.3f
-                                                            val maxPanX = ((displayedWidthPx * (zoomScale - 1f)) / 2f + 80f).coerceAtLeast(0f)
-                                                            val maxPanY = ((displayedHeightPx * (zoomScale - 1f)) / 2f + 80f).coerceAtLeast(0f)
-                                                            panOffsetX = (panOffsetX + pan.x * panMultiplier).coerceIn(-maxPanX, maxPanX)
-                                                            panOffsetY = (panOffsetY + pan.y * panMultiplier).coerceIn(-maxPanY, maxPanY)
+                                                            val maxPanX = ((displayedWidthPx * (zoomScale - 1f)) / 2f).coerceAtLeast(0f)
+                                                            val maxPanY = ((displayedHeightPx * (zoomScale - 1f)) / 2f).coerceAtLeast(0f)
+                                                            panOffsetX = (panOffsetX + pan.x).coerceIn(-maxPanX, maxPanX)
+                                                            panOffsetY = (panOffsetY + pan.y).coerceIn(-maxPanY, maxPanY)
                                                             pointer.consume()
                                                         }
                                                     }
@@ -642,7 +643,7 @@ fun FullImageEditorScreen(
                                                     val pan = event.calculatePan()
                                                     val zoomMultiplier = 1.6f
                                                     val effectiveZoom = 1f + (zoom - 1f) * zoomMultiplier
-                                                    val newScale = (zoomScale * effectiveZoom).coerceIn(1f, 6f)
+                                                    val newScale = (zoomScale * effectiveZoom).coerceIn(1f, 5f)
                                                     zoomScale = newScale
                                                     if (newScale > 1.05f) {
                                                         val panMultiplier = 1.45f
@@ -695,12 +696,34 @@ fun FullImageEditorScreen(
                                         detectTapGestures(
                                             onDoubleTap = {
                                                 if (!isDraggingHandleOrSignature) {
-                                                    if (zoomScale > 1.05f) {
-                                                        zoomScale = 1f
-                                                        panOffsetX = 0f
-                                                        panOffsetY = 0f
-                                                    } else {
-                                                        zoomScale = 2.5f
+                                                    coroutineScope.launch {
+                                                        if (zoomScale > 1.05f) {
+                                                            val startScale = zoomScale
+                                                            val startX = panOffsetX
+                                                            val startY = panOffsetY
+                                                            androidx.compose.animation.core.animate(
+                                                                initialValue = 0f,
+                                                                targetValue = 1f,
+                                                                animationSpec = tween(durationMillis = 250)
+                                                            ) { fraction, _ ->
+                                                                zoomScale = startScale + (1f - startScale) * fraction
+                                                                panOffsetX = startX * (1f - fraction)
+                                                                panOffsetY = startY * (1f - fraction)
+                                                            }
+                                                            zoomScale = 1f
+                                                            panOffsetX = 0f
+                                                            panOffsetY = 0f
+                                                        } else {
+                                                            val target = 2.5f
+                                                            androidx.compose.animation.core.animate(
+                                                                initialValue = 1f,
+                                                                targetValue = target,
+                                                                animationSpec = tween(durationMillis = 250)
+                                                            ) { value, _ ->
+                                                                zoomScale = value
+                                                            }
+                                                            zoomScale = target
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1595,198 +1618,229 @@ fun CropOverlay(
     val density = LocalDensity.current
     var activeHandle by remember { mutableStateOf(CropHandle.NONE) }
 
+    val currentCropLeft by rememberUpdatedState(cropLeftNorm)
+    val currentCropTop by rememberUpdatedState(cropTopNorm)
+    val currentCropRight by rememberUpdatedState(cropRightNorm)
+    val currentCropBottom by rememberUpdatedState(cropBottomNorm)
+    val currentAspectRatio by rememberUpdatedState(aspectRatio)
+    val currentOnCropChange by rememberUpdatedState(onCropChange)
+    val currentOnDragStateChange by rememberUpdatedState(onDragStateChange)
+
+    var startL by remember { mutableFloatStateOf(0f) }
+    var startT by remember { mutableFloatStateOf(0f) }
+    var startR by remember { mutableFloatStateOf(0f) }
+    var startB by remember { mutableFloatStateOf(0f) }
+    var accumulatedDx by remember { mutableFloatStateOf(0f) }
+    var accumulatedDy by remember { mutableFloatStateOf(0f) }
+
     Canvas(
-        modifier = modifier.pointerInput(displayedImageRect, cropLeftNorm, cropTopNorm, cropRightNorm, cropBottomNorm, aspectRatio) {
+        modifier = modifier.pointerInput(displayedImageRect.width(), displayedImageRect.height()) {
             val imgW = displayedImageRect.width()
             val imgH = displayedImageRect.height()
             if (imgW <= 0f || imgH <= 0f) return@pointerInput
 
             detectDragGestures(
                 onDragStart = { offset ->
-                    val cropL = displayedImageRect.left + cropLeftNorm * imgW
-                    val cropT = displayedImageRect.top + cropTopNorm * imgH
-                    val cropR = displayedImageRect.left + cropRightNorm * imgW
-                    val cropB = displayedImageRect.top + cropBottomNorm * imgH
+                    val cropL = displayedImageRect.left + currentCropLeft * imgW
+                    val cropT = displayedImageRect.top + currentCropTop * imgH
+                    val cropR = displayedImageRect.left + currentCropRight * imgW
+                    val cropB = displayedImageRect.top + currentCropBottom * imgH
+                    val midX = (cropL + cropR) / 2f
+                    val midY = (cropT + cropB) / 2f
 
-                    // Touch target size >= 48dp: radius 32dp (64dp diameter) for corners, 24dp for edges
+                    // Minimum 48dp touch targets: 32dp radius for corners (64dp diameter), 24dp radius for edges (48dp diameter)
                     val cornerHitRadius = with(density) { 32.dp.toPx() }
-                    val edgeHitDist = with(density) { 24.dp.toPx() }
+                    val edgeHitRadius = with(density) { 24.dp.toPx() }
 
                     fun distSq(x1: Float, y1: Float, x2: Float, y2: Float) = (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)
-                    val cornerSq = cornerHitRadius * cornerHitRadius
 
-                    activeHandle = when {
-                        distSq(offset.x, offset.y, cropL, cropT) <= cornerSq -> CropHandle.TOP_LEFT
-                        distSq(offset.x, offset.y, cropR, cropT) <= cornerSq -> CropHandle.TOP_RIGHT
-                        distSq(offset.x, offset.y, cropR, cropB) <= cornerSq -> CropHandle.BOTTOM_RIGHT
-                        distSq(offset.x, offset.y, cropL, cropB) <= cornerSq -> CropHandle.BOTTOM_LEFT
-                        abs(offset.y - cropT) <= edgeHitDist && offset.x in (cropL - 10f .. cropR + 10f) -> CropHandle.TOP
-                        abs(offset.y - cropB) <= edgeHitDist && offset.x in (cropL - 10f .. cropR + 10f) -> CropHandle.BOTTOM
-                        abs(offset.x - cropL) <= edgeHitDist && offset.y in (cropT - 10f .. cropB + 10f) -> CropHandle.LEFT
-                        abs(offset.x - cropR) <= edgeHitDist && offset.y in (cropT - 10f .. cropB + 10f) -> CropHandle.RIGHT
-                        offset.x in cropL..cropR && offset.y in cropT..cropB -> CropHandle.BODY
-                        else -> CropHandle.NONE
+                    // Find nearest handle by Euclidean distance within touch radius
+                    data class HandleCandidate(val handle: CropHandle, val distSq: Float, val maxRadius: Float)
+                    val candidates = listOf(
+                        HandleCandidate(CropHandle.TOP_LEFT, distSq(offset.x, offset.y, cropL, cropT), cornerHitRadius),
+                        HandleCandidate(CropHandle.TOP_RIGHT, distSq(offset.x, offset.y, cropR, cropT), cornerHitRadius),
+                        HandleCandidate(CropHandle.BOTTOM_RIGHT, distSq(offset.x, offset.y, cropR, cropB), cornerHitRadius),
+                        HandleCandidate(CropHandle.BOTTOM_LEFT, distSq(offset.x, offset.y, cropL, cropB), cornerHitRadius),
+                        HandleCandidate(CropHandle.TOP, distSq(offset.x, offset.y, midX, cropT), edgeHitRadius),
+                        HandleCandidate(CropHandle.BOTTOM, distSq(offset.x, offset.y, midX, cropB), edgeHitRadius),
+                        HandleCandidate(CropHandle.LEFT, distSq(offset.x, offset.y, cropL, midY), edgeHitRadius),
+                        HandleCandidate(CropHandle.RIGHT, distSq(offset.x, offset.y, cropR, midY), edgeHitRadius)
+                    )
+
+                    val nearest = candidates
+                        .filter { it.distSq <= it.maxRadius * it.maxRadius }
+                        .minByOrNull { it.distSq }
+
+                    activeHandle = if (nearest != null) {
+                        nearest.handle
+                    } else if (offset.x in cropL..cropR && offset.y in cropT..cropB) {
+                        CropHandle.BODY
+                    } else {
+                        CropHandle.NONE
                     }
+
                     if (activeHandle != CropHandle.NONE) {
-                        onDragStateChange(true)
+                        startL = currentCropLeft * imgW
+                        startT = currentCropTop * imgH
+                        startR = currentCropRight * imgW
+                        startB = currentCropBottom * imgH
+                        accumulatedDx = 0f
+                        accumulatedDy = 0f
+                        currentOnDragStateChange(true)
                     }
                 },
                 onDragEnd = {
                     activeHandle = CropHandle.NONE
-                    onDragStateChange(false)
+                    currentOnDragStateChange(false)
                 },
                 onDragCancel = {
                     activeHandle = CropHandle.NONE
-                    onDragStateChange(false)
+                    currentOnDragStateChange(false)
                 }
             ) { change, dragAmount ->
                 if (activeHandle == CropHandle.NONE) return@detectDragGestures
                 change.consume()
 
-                val dx = dragAmount.x
-                val dy = dragAmount.y
+                accumulatedDx += dragAmount.x
+                accumulatedDy += dragAmount.y
 
-                // Minimum crop size: 48dp
-                val minSizePx = with(density) { 48.dp.toPx() }
+                // Minimum crop size: 64dp (clamped inside bounds to prevent collapsing or inverting)
+                val minSizePx = with(density) { 64.dp.toPx() }.coerceAtMost(min(imgW, imgH) * 0.9f)
 
-                var curL = cropLeftNorm * imgW
-                var curT = cropTopNorm * imgH
-                var curR = cropRightNorm * imgW
-                var curB = cropBottomNorm * imgH
-                val curW = curR - curL
-                val curH = curB - curT
+                val ratio = currentAspectRatio
 
-                val ratio = aspectRatio
+                var curL = startL
+                var curT = startT
+                var curR = startR
+                var curB = startB
 
                 if (ratio == null) {
-                    // Free aspect ratio dragging
                     when (activeHandle) {
                         CropHandle.TOP_LEFT -> {
-                            curL = (curL + dx).coerceIn(0f, curR - minSizePx)
-                            curT = (curT + dy).coerceIn(0f, curB - minSizePx)
+                            curL = (startL + accumulatedDx).coerceIn(0f, startR - minSizePx)
+                            curT = (startT + accumulatedDy).coerceIn(0f, startB - minSizePx)
                         }
                         CropHandle.TOP_RIGHT -> {
-                            curR = (curR + dx).coerceIn(curL + minSizePx, imgW)
-                            curT = (curT + dy).coerceIn(0f, curB - minSizePx)
+                            curR = (startR + accumulatedDx).coerceIn(startL + minSizePx, imgW)
+                            curT = (startT + accumulatedDy).coerceIn(0f, startB - minSizePx)
                         }
                         CropHandle.BOTTOM_RIGHT -> {
-                            curR = (curR + dx).coerceIn(curL + minSizePx, imgW)
-                            curB = (curB + dy).coerceIn(curT + minSizePx, imgH)
+                            curR = (startR + accumulatedDx).coerceIn(startL + minSizePx, imgW)
+                            curB = (startB + accumulatedDy).coerceIn(startT + minSizePx, imgH)
                         }
                         CropHandle.BOTTOM_LEFT -> {
-                            curL = (curL + dx).coerceIn(0f, curR - minSizePx)
-                            curB = (curB + dy).coerceIn(curT + minSizePx, imgH)
+                            curL = (startL + accumulatedDx).coerceIn(0f, startR - minSizePx)
+                            curB = (startB + accumulatedDy).coerceIn(startT + minSizePx, imgH)
                         }
                         CropHandle.TOP -> {
-                            curT = (curT + dy).coerceIn(0f, curB - minSizePx)
+                            curT = (startT + accumulatedDy).coerceIn(0f, startB - minSizePx)
                         }
                         CropHandle.BOTTOM -> {
-                            curB = (curB + dy).coerceIn(curT + minSizePx, imgH)
+                            curB = (startB + accumulatedDy).coerceIn(startT + minSizePx, imgH)
                         }
                         CropHandle.LEFT -> {
-                            curL = (curL + dx).coerceIn(0f, curR - minSizePx)
+                            curL = (startL + accumulatedDx).coerceIn(0f, startR - minSizePx)
                         }
                         CropHandle.RIGHT -> {
-                            curR = (curR + dx).coerceIn(curL + minSizePx, imgW)
+                            curR = (startR + accumulatedDx).coerceIn(startL + minSizePx, imgW)
                         }
                         CropHandle.BODY -> {
-                            val clampedDx = dx.coerceIn(-curL, imgW - curR)
-                            val clampedDy = dy.coerceIn(-curT, imgH - curB)
-                            curL += clampedDx
-                            curR += clampedDx
-                            curT += clampedDy
-                            curB += clampedDy
+                            val w = startR - startL
+                            val h = startB - startT
+                            val clampedDx = accumulatedDx.coerceIn(-startL, imgW - startR)
+                            val clampedDy = accumulatedDy.coerceIn(-startT, imgH - startB)
+                            curL = startL + clampedDx
+                            curR = curL + w
+                            curT = startT + clampedDy
+                            curB = curT + h
                         }
                         CropHandle.NONE -> {}
                     }
                 } else {
-                    // Locked aspect ratio dragging (R = width / height)
                     val R = ratio.coerceAtLeast(0.01f)
                     val minW = max(minSizePx, minSizePx * R)
                     val minH = minW / R
 
                     when (activeHandle) {
                         CropHandle.BOTTOM_RIGHT -> {
-                            val maxW = min(imgW - curL, (imgH - curT) * R)
-                            val candidateW = if (abs(dx) >= abs(dy * R)) curW + dx else (curH + dy) * R
-                            val newW = candidateW.coerceIn(minW, max(minW, maxW))
-                            val newH = newW / R
-                            curR = curL + newW
-                            curB = curT + newH
+                            val maxW = min(imgW - startL, (imgH - startT) * R)
+                            val candW = (startR - startL + accumulatedDx).coerceIn(minW, max(minW, maxW))
+                            val candH = candW / R
+                            curR = startL + candW
+                            curB = startT + candH
                         }
                         CropHandle.TOP_LEFT -> {
-                            val maxW = min(curR, curB * R)
-                            val candidateW = if (abs(dx) >= abs(dy * R)) curW - dx else (curH - dy) * R
-                            val newW = candidateW.coerceIn(minW, max(minW, maxW))
-                            val newH = newW / R
-                            curL = curR - newW
-                            curT = curB - newH
+                            val maxW = min(startR, startB * R)
+                            val candW = (startR - startL - accumulatedDx).coerceIn(minW, max(minW, maxW))
+                            val candH = candW / R
+                            curL = startR - candW
+                            curT = startB - candH
                         }
                         CropHandle.TOP_RIGHT -> {
-                            val maxW = min(imgW - curL, curB * R)
-                            val candidateW = if (abs(dx) >= abs(dy * R)) curW + dx else (curH - dy) * R
-                            val newW = candidateW.coerceIn(minW, max(minW, maxW))
-                            val newH = newW / R
-                            curR = curL + newW
-                            curT = curB - newH
+                            val maxW = min(imgW - startL, startB * R)
+                            val candW = (startR - startL + accumulatedDx).coerceIn(minW, max(minW, maxW))
+                            val candH = candW / R
+                            curR = startL + candW
+                            curT = startB - candH
                         }
                         CropHandle.BOTTOM_LEFT -> {
-                            val maxW = min(curR, (imgH - curT) * R)
-                            val candidateW = if (abs(dx) >= abs(dy * R)) curW - dx else (curH + dy) * R
-                            val newW = candidateW.coerceIn(minW, max(minW, maxW))
-                            val newH = newW / R
-                            curL = curR - newW
-                            curB = curT + newH
+                            val maxW = min(startR, (imgH - startT) * R)
+                            val candW = (startR - startL - accumulatedDx).coerceIn(minW, max(minW, maxW))
+                            val candH = candW / R
+                            curL = startR - candW
+                            curB = startT + candH
                         }
                         CropHandle.RIGHT -> {
-                            val maxW = min(imgW - curL, imgH * R)
-                            val newW = (curW + dx).coerceIn(minW, max(minW, maxW))
-                            val newH = newW / R
-                            curR = curL + newW
-                            val centerY = (curT + curB) / 2f
-                            curT = (centerY - newH / 2f).coerceIn(0f, imgH - newH)
-                            curB = curT + newH
+                            val maxW = min(imgW - startL, imgH * R)
+                            val candW = (startR - startL + accumulatedDx).coerceIn(minW, max(minW, maxW))
+                            val candH = candW / R
+                            curR = startL + candW
+                            val centerY = (startT + startB) / 2f
+                            curT = (centerY - candH / 2f).coerceIn(0f, imgH - candH)
+                            curB = curT + candH
                         }
                         CropHandle.LEFT -> {
-                            val maxW = min(curR, imgH * R)
-                            val newW = (curW - dx).coerceIn(minW, max(minW, maxW))
-                            val newH = newW / R
-                            curL = curR - newW
-                            val centerY = (curT + curB) / 2f
-                            curT = (centerY - newH / 2f).coerceIn(0f, imgH - newH)
-                            curB = curT + newH
+                            val maxW = min(startR, imgH * R)
+                            val candW = (startR - startL - accumulatedDx).coerceIn(minW, max(minW, maxW))
+                            val candH = candW / R
+                            curL = startR - candW
+                            val centerY = (startT + startB) / 2f
+                            curT = (centerY - candH / 2f).coerceIn(0f, imgH - candH)
+                            curB = curT + candH
                         }
                         CropHandle.BOTTOM -> {
-                            val maxH = min(imgH - curT, imgW / R)
-                            val newH = (curH + dy).coerceIn(minH, max(minH, maxH))
-                            val newW = newH * R
-                            curB = curT + newH
-                            val centerX = (curL + curR) / 2f
-                            curL = (centerX - newW / 2f).coerceIn(0f, imgW - newW)
-                            curR = curL + newW
+                            val maxH = min(imgH - startT, imgW / R)
+                            val candH = (startB - startT + accumulatedDy).coerceIn(minH, max(minH, maxH))
+                            val candW = candH * R
+                            curB = startT + candH
+                            val centerX = (startL + startR) / 2f
+                            curL = (centerX - candW / 2f).coerceIn(0f, imgW - candW)
+                            curR = curL + candW
                         }
                         CropHandle.TOP -> {
-                            val maxH = min(curB, imgW / R)
-                            val newH = (curH - dy).coerceIn(minH, max(minH, maxH))
-                            val newW = newH * R
-                            curT = curB - newH
-                            val centerX = (curL + curR) / 2f
-                            curL = (centerX - newW / 2f).coerceIn(0f, imgW - newW)
-                            curR = curL + newW
+                            val maxH = min(startB, imgW / R)
+                            val candH = (startB - startT - accumulatedDy).coerceIn(minH, max(minH, maxH))
+                            val candW = candH * R
+                            curT = startB - candH
+                            val centerX = (startL + startR) / 2f
+                            curL = (centerX - candW / 2f).coerceIn(0f, imgW - candW)
+                            curR = curL + candW
                         }
                         CropHandle.BODY -> {
-                            val clampedDx = dx.coerceIn(-curL, imgW - curR)
-                            val clampedDy = dy.coerceIn(-curT, imgH - curB)
-                            curL += clampedDx
-                            curR += clampedDx
-                            curT += clampedDy
-                            curB += clampedDy
+                            val w = startR - startL
+                            val h = startB - startT
+                            val clampedDx = accumulatedDx.coerceIn(-startL, imgW - startR)
+                            val clampedDy = accumulatedDy.coerceIn(-startT, imgH - startB)
+                            curL = startL + clampedDx
+                            curR = curL + w
+                            curT = startT + clampedDy
+                            curB = curT + h
                         }
                         CropHandle.NONE -> {}
                     }
                 }
 
-                onCropChange(
+                currentOnCropChange(
                     (curL / imgW).coerceIn(0f, 1f),
                     (curT / imgH).coerceIn(0f, 1f),
                     (curR / imgW).coerceIn(0f, 1f),
@@ -2056,10 +2110,17 @@ private fun distToSegmentSq(p: Offset, v: Offset, w: Offset): Float {
 
 fun findRealDocFolder(context: Context, file: File): File {
     val parent = file.parentFile ?: context.filesDir
-    if (parent.name == "unlocked_sessions") {
-        val grandParent = parent.parentFile ?: context.filesDir
-        val candidate = File(grandParent, file.nameWithoutExtension)
-        if (candidate.exists() && candidate.isDirectory) return candidate
+    if (parent.parentFile?.name == "session_unlocked") {
+        val folderName = parent.name
+        val resolved = DocumentRepository.resolveDocDir(context, folderName)
+        if (resolved != null && resolved.exists()) return resolved
+        val fallback = File(getPrivateDocsDir(context), folderName)
+        if (fallback.exists()) return fallback
+    }
+    if (parent.name == "session_unlocked") {
+        val folderName = file.nameWithoutExtension
+        val resolved = DocumentRepository.resolveDocDir(context, folderName)
+        if (resolved != null && resolved.exists()) return resolved
     }
     return parent
 }
@@ -2158,9 +2219,10 @@ private suspend fun saveEditorChanges(
             val candidateBaseName = file.name.substringBefore(".jpg").substringBefore(".png").substringBefore(".jpeg")
             val encFile = File(docFolder, "$candidateBaseName.jpg.enc")
             val legacyEncFile = File(docFolder, "$candidateBaseName.enc")
-            val lockTmp = File(docFolder, encFile.name + ".lock_tmp")
+            val lockTmp = File(docFolder, "${encFile.name}.${UUID.randomUUID()}.lock_tmp")
             try {
                 LockedDocCryptoManager.encryptFile(file, lockTmp)
+                FileOutputStream(lockTmp, true).use { it.fd.sync() }
                 val dek = LockedDocCryptoManager.getOrDecryptDek(docFolder)
                 if (!LockedDocCryptoManager.verifyEncryptedChunk(lockTmp, dek)) {
                     throw IllegalStateException("Encrypted chunk verification failed for lock_tmp")
@@ -2180,7 +2242,17 @@ private suspend fun saveEditorChanges(
                     lockTmp.delete()
                 }
                 android.util.Log.e("ImageEditorScreen", "Error re-encrypting page: ${e.message}", e)
+                return false
             }
+        }
+
+        val now = System.currentTimeMillis()
+        docFolder.setLastModified(now)
+        file.setLastModified(now)
+        try {
+            DocumentRepository.updateModified(activity, docFolder.name)
+        } catch (e: Exception) {
+            android.util.Log.e("ImageEditorScreen", "Failed updating DB timestamp: ${e.message}", e)
         }
 
         try {

@@ -73,6 +73,9 @@ fun DocCardWithMenu(
     var showDeviceLockRequiredDialog by remember { mutableStateOf(false) }
     var showExpiryDialog by remember { mutableStateOf(false) }
     var showLockedCloudBackupDialog by remember { mutableStateOf(false) }
+    var showSaveToDeviceDialog by remember { mutableStateOf(false) }
+    var isSavingToDevice by remember { mutableStateOf(false) }
+    var saveProgressText by remember { mutableStateOf("") }
 
     var showSharePdfRenameDialog by remember { mutableStateOf(false) }
     var sharePdfNameText by remember { mutableStateOf(doc.displayName) }
@@ -332,6 +335,61 @@ fun DocCardWithMenu(
         )
     }
 
+    if (showSaveToDeviceDialog || isSavingToDevice) {
+        SaveToDeviceDialog(
+            docTitle = doc.displayName,
+            isSaving = isSavingToDevice,
+            progressText = saveProgressText,
+            onDismiss = { showSaveToDeviceDialog = false },
+            onSaveJpg = {
+                isSavingToDevice = true
+                saveProgressText = "Preparing pages..."
+                coroutineScope.launch {
+                    val res = SaveToDeviceManager.saveDocAsJpg(
+                        context = activity,
+                        doc = doc,
+                        onProgress = { current, total ->
+                            saveProgressText = "Saving page $current of $total to Pictures/ScanVault..."
+                        }
+                    )
+                    isSavingToDevice = false
+                    showSaveToDeviceDialog = false
+                    when (res) {
+                        is SaveToDeviceResult.Success -> {
+                            Toast.makeText(activity, "Saved to Pictures/ScanVault", Toast.LENGTH_SHORT).show()
+                        }
+                        is SaveToDeviceResult.Failure -> {
+                            Toast.makeText(activity, res.message, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            },
+            onSavePdf = {
+                isSavingToDevice = true
+                saveProgressText = "Building PDF for ${doc.displayName}..."
+                coroutineScope.launch {
+                    val res = SaveToDeviceManager.saveDocAsPdf(
+                        context = activity,
+                        doc = doc,
+                        onProgress = { current, total ->
+                            saveProgressText = if (current == 1) "Generating PDF..." else "Writing to Documents/ScanVault..."
+                        }
+                    )
+                    isSavingToDevice = false
+                    showSaveToDeviceDialog = false
+                    when (res) {
+                        is SaveToDeviceResult.Success -> {
+                            Toast.makeText(activity, "Saved to Documents/ScanVault", Toast.LENGTH_SHORT).show()
+                        }
+                        is SaveToDeviceResult.Failure -> {
+                            Toast.makeText(activity, res.message, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+        )
+    }
+
     if (showRenameDialog) {
         RenameDocumentDialog(
             currentName = doc.displayName,
@@ -578,7 +636,12 @@ fun DocCardWithMenu(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("★", color = colors.accentAmber, fontSize = 14.sp)
                     }
-                    if (isBackedUpToDrive) {
+                    val uploadingDocNames by DriveBackupManager.uploadingDocFolderNames.collectAsState()
+                    val isUploadingThisDoc = uploadingDocNames.contains(doc.folderName)
+                    if (isUploadingThisDoc) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("⏳", fontSize = 13.sp)
+                    } else if (isBackedUpToDrive) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("☁️", fontSize = 13.sp)
                     }
@@ -765,7 +828,43 @@ fun DocCardWithMenu(
                         leadingIcon = { Text("📤") },
                         onClick = {
                             menuExpanded = false
-                            showShareDialog = true
+                            if (doc.isLocked) {
+                                BiometricAuthManager.authenticate(
+                                    activity = activity as FragmentActivity,
+                                    title = "Unlock ${doc.displayName}",
+                                    subtitle = "Biometric authentication required to share locked document",
+                                    onSuccess = {
+                                        showShareDialog = true
+                                    },
+                                    onError = { err ->
+                                        Toast.makeText(activity, err.ifBlank { "Authentication required to share" }, Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            } else {
+                                showShareDialog = true
+                            }
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Save to device", color = colors.textPrimary) },
+                        leadingIcon = { Text("💾") },
+                        onClick = {
+                            menuExpanded = false
+                            if (doc.isLocked) {
+                                BiometricAuthManager.authenticate(
+                                    activity = activity as FragmentActivity,
+                                    title = "Unlock ${doc.displayName}",
+                                    onSuccess = {
+                                        showSaveToDeviceDialog = true
+                                    },
+                                    onError = { err ->
+                                        Toast.makeText(activity, err, Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            } else {
+                                showSaveToDeviceDialog = true
+                            }
                         }
                     )
 

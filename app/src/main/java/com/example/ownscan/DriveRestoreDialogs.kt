@@ -291,7 +291,8 @@ fun CloudBackupsDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.85f),
+                .fillMaxHeight(0.85f)
+                .systemBarsPadding(),
             shape = RoundedCornerShape(24.dp),
             color = colors.surface,
             tonalElevation = 8.dp

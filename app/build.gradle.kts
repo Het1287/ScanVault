@@ -36,6 +36,10 @@ android {
         compose = true
     }
 
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+
     // --- FIX FOR META-INF/DEPENDENCIES COLLISION ---
     packaging {
         resources {

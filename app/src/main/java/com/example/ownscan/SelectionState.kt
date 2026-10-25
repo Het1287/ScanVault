@@ -108,6 +108,7 @@ fun MultiSelectBottomBar(
     canMerge: Boolean = false,
     onTag: () -> Unit,
     onShare: () -> Unit,
+    onSaveToDevice: () -> Unit = {},
     onBackup: () -> Unit,
     onLock: () -> Unit = {},
     onDelete: () -> Unit
@@ -115,16 +116,19 @@ fun MultiSelectBottomBar(
     val colors = LocalAppColors.current
 
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
+        modifier = Modifier.fillMaxWidth(),
         color = colors.surface,
         shadowElevation = 12.dp
     ) {
-        Row(
+        Box(
             modifier = Modifier
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 2.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp, horizontal = 2.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -134,6 +138,7 @@ fun MultiSelectBottomBar(
             }
             BottomBarAction(icon = "🏷️", label = "Tags", onClick = onTag)
             BottomBarAction(icon = "📤", label = "Share", onClick = onShare)
+            BottomBarAction(icon = "💾", label = "Save", onClick = onSaveToDevice)
             BottomBarAction(icon = "☁️", label = "Backup", onClick = onBackup)
             BottomBarAction(icon = "🔒", label = "Lock", onClick = onLock)
             BottomBarAction(
@@ -143,6 +148,7 @@ fun MultiSelectBottomBar(
                 textColor = MaterialTheme.colorScheme.error
             )
         }
+    }
     }
 }
 
@@ -407,7 +413,7 @@ fun BulkMoveDialog(
                     }
                 }
 
-                items(userFolders) { folder ->
+                items(userFolders, key = { it.name }) { folder ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

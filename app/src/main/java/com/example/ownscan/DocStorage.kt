@@ -47,12 +47,75 @@ fun getUserFoldersDir(context: Context): File {
     return dir
 }
 
+fun isDocDir(folder: File): Boolean {
+    if (!folder.isDirectory) return false
+    return folder.name.contains("__") || File(folder, "meta.json").exists() || File(folder, "order.txt").exists()
+}
+
+@Volatile
+private var hasFlattenedSubfolders = false
+
+/**
+ * One-time safe flattening step:
+ * Ensures users who created subfolders during previous testing do not lose any documents.
+ * Moves documents inside nested subfolders to the top-level folder (or surfaces the subfolder),
+ * updates Room DB records, and leaves no document orphaned or lost.
+ */
+fun flattenLegacySubfolders(context: Context) {
+    val userFoldersDir = getUserFoldersDir(context)
+    if (!userFoldersDir.exists()) return
+
+    val topFolders = userFoldersDir.listFiles { f -> f.isDirectory && !f.name.startsWith(".backup_old_") && !f.name.startsWith(".temp_staging_") && !isDocDir(f) } ?: return
+    var hasChanges = false
+
+    for (topFolder in topFolders) {
+        val nestedDirs = topFolder.walkTopDown().filter { it != topFolder && it.isDirectory && !isDocDir(it) }.toList()
+        for (subDir in nestedDirs.reversed()) {
+            val docDirs = subDir.listFiles { f -> f.isDirectory && isDocDir(f) } ?: emptyArray()
+            for (docDir in docDirs) {
+                var destDocDir = File(topFolder, docDir.name)
+                if (destDocDir.exists()) {
+                    destDocDir = File(topFolder, "${docDir.name}_${System.currentTimeMillis()}")
+                }
+                if (docDir.renameTo(destDocDir)) {
+                    hasChanges = true
+                    try {
+                        val db = AppDatabase.getInstance(context)
+                        db.documentDao().updateParentFolder(destDocDir.name, topFolder.name)
+                    } catch (_: Exception) {}
+                }
+            }
+            if (subDir.listFiles()?.isEmpty() == true) {
+                subDir.delete()
+            }
+        }
+    }
+
+    if (hasChanges) {
+        thumbnailMemoryCache.evictAll()
+        try {
+            val db = AppDatabase.getInstance(context)
+            val allDocs = db.documentDao().getAllDocumentsList()
+            for (d in allDocs) {
+                if (d.parentFolder != null && d.parentFolder.contains("/")) {
+                    val rootName = d.parentFolder.substringBefore('/')
+                    db.documentDao().updateParentFolder(d.folderName, rootName)
+                }
+            }
+        } catch (_: Exception) {}
+    }
+}
+
 fun loadUserFolders(context: Context): List<UserFolder> {
+    if (!hasFlattenedSubfolders) {
+        flattenLegacySubfolders(context)
+        hasFlattenedSubfolders = true
+    }
     val dir = getUserFoldersDir(context)
-    val list = dir.listFiles { f -> f.isDirectory } ?: return emptyList()
+    val list = dir.listFiles { f -> f.isDirectory && !f.name.startsWith(".backup_old_") && !f.name.startsWith(".temp_staging_") && !isDocDir(f) } ?: return emptyList()
     return list.map { folder ->
-        val docCount = folder.listFiles { it.isDirectory }?.size ?: 0
-        UserFolder(folder.name, docCount)
+        val docCount = folder.listFiles { it.isDirectory && isDocDir(it) }?.size ?: 0
+        UserFolder(name = folder.name, docCount = docCount)
     }.sortedBy { it.name.lowercase() }
 }
 
@@ -60,19 +123,65 @@ fun createUserFolder(context: Context, name: String): Boolean {
     val sanitized = sanitizeName(name)
     if (sanitized.isBlank()) return false
     val folder = File(getUserFoldersDir(context), sanitized)
-    return if (!folder.exists()) folder.mkdirs() else false
+    val created = if (!folder.exists()) folder.mkdirs() else false
+    if (created) {
+        try {
+            val db = AppDatabase.getInstance(context)
+            db.folderDao().insertOrUpdate(
+                FolderEntity(
+                    id = sanitized,
+                    name = sanitized,
+                    parentFolderId = null
+                )
+            )
+        } catch (_: Exception) {}
+    }
+    return created
 }
 
 fun renameUserFolder(context: Context, oldName: String, newName: String): Boolean {
     val sanitized = sanitizeName(newName)
     if (sanitized.isBlank() || sanitized == oldName) return false
-    val src = File(getUserFoldersDir(context), oldName)
-    val dest = File(getUserFoldersDir(context), sanitized)
-    return src.renameTo(dest)
+    val userFoldersDir = getUserFoldersDir(context)
+    val src = File(userFoldersDir, oldName)
+    if (!src.exists()) return false
+    val dest = File(userFoldersDir, sanitized)
+    if (dest.exists()) return false
+    val renamed = src.renameTo(dest)
+    if (renamed) {
+        thumbnailMemoryCache.evictAll()
+        try {
+            val db = AppDatabase.getInstance(context)
+            db.folderDao().deleteById(oldName)
+            db.folderDao().insertOrUpdate(
+                FolderEntity(
+                    id = sanitized,
+                    name = sanitized,
+                    parentFolderId = null
+                )
+            )
+            db.documentDao().updateParentFolder(oldName, sanitized)
+        } catch (_: Exception) {}
+    }
+    return renamed
 }
 
 fun deleteUserFolder(context: Context, name: String): Boolean {
-    val folder = File(getUserFoldersDir(context), name)
+    val userFoldersDir = getUserFoldersDir(context)
+    val folder = File(userFoldersDir, name)
+    if (!folder.exists()) return false
+    try {
+        val allDocs = loadAllInAppDocuments(context, includeTrashed = false)
+        val docsToTrash = allDocs.filter { doc -> doc.parentFolder == name }
+        for (doc in docsToTrash) {
+            kotlinx.coroutines.runBlocking {
+                DocumentRepository.moveToTrash(context, doc)
+            }
+        }
+        val db = AppDatabase.getInstance(context)
+        db.folderDao().deleteById(name)
+    } catch (_: Exception) {}
+    thumbnailMemoryCache.evictAll()
     return folder.deleteRecursively()
 }
 
@@ -196,7 +305,7 @@ fun loadAllInAppDocuments(context: Context, includeTrashed: Boolean = false): Li
     }
 
     val userFoldersDir = getUserFoldersDir(context)
-    userFoldersDir.listFiles { file -> file.isDirectory && !file.name.startsWith(".backup_old_") && !file.name.startsWith(".temp_staging_") }?.forEach { uFolder ->
+    userFoldersDir.listFiles { file -> file.isDirectory && !file.name.startsWith(".backup_old_") && !file.name.startsWith(".temp_staging_") && !isDocDir(file) }?.forEach { uFolder ->
         uFolder.listFiles { file -> file.isDirectory && !file.name.startsWith(".backup_old_") && !file.name.startsWith(".temp_staging_") }?.forEach { docDir ->
             parseDocDir(docDir, uFolder.name)?.let { docs.add(it) }
         }

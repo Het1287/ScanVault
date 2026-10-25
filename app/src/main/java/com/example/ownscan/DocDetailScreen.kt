@@ -96,6 +96,9 @@ fun DocDetailScreen(
     var showDeviceLockRequiredDialog by remember { mutableStateOf(false) }
     var showExpiryDialog by remember { mutableStateOf(false) }
     var showAdvancedPdfDialog by remember { mutableStateOf(false) }
+    var showSaveToDeviceDialog by remember { mutableStateOf(false) }
+    var isSavingToDevice by remember { mutableStateOf(false) }
+    var saveProgressText by remember { mutableStateOf("") }
 
     // OCR & Smart Banners
     var docOcrText by remember(currentDoc.folderName) { mutableStateOf("") }
@@ -115,9 +118,11 @@ fun DocDetailScreen(
         }
     }
     var dismissedExpiryBanner by remember(currentDoc.folderName) { mutableStateOf(false) }
+    val backedUpFolderNames by DriveBackupManager.backedUpDocFolderNames.collectAsState()
+    val uploadingFolderNames by DriveBackupManager.uploadingDocFolderNames.collectAsState()
 
     // Initial load and reload on updates
-    LaunchedEffect(currentDoc.folderName, currentDoc.isLocked) {
+    LaunchedEffect(currentDoc.folderName, currentDoc.isLocked, currentDoc.timestamp) {
         if (currentDoc.isLocked) {
             withContext(Dispatchers.IO) {
                 try {
@@ -347,6 +352,13 @@ fun DocDetailScreen(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("🔒", fontSize = 14.sp)
                                 }
+                                if (uploadingFolderNames.contains(currentDoc.folderName)) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("⏳", fontSize = 14.sp)
+                                } else if (backedUpFolderNames.contains(currentDoc.folderName)) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("☁️", fontSize = 14.sp)
+                                }
                             }
                             Text(
                                 text = "${uiState.pageCount} ${if (uiState.pageCount == 1) "page" else "pages"}",
@@ -366,6 +378,16 @@ fun DocDetailScreen(
                                 onDismissRequest = { showOverflowMenu = false },
                                 modifier = Modifier.background(colors.surface)
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Save to device", color = colors.textPrimary) },
+                                    leadingIcon = { Text("💾", fontSize = 16.sp) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        requireAuthIfLocked("Save to device") {
+                                            showSaveToDeviceDialog = true
+                                        }
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = {
                                         Text(
@@ -473,14 +495,18 @@ fun DocDetailScreen(
                     shadowElevation = 16.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
+                            .windowInsetsPadding(WindowInsets.navigationBars)
                             .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                         // Copy
                         BottomBarAction(
                             icon = "📋",
@@ -543,6 +569,7 @@ fun DocDetailScreen(
                                 }
                             }
                         )
+                    }
                     }
                 }
             }
@@ -944,21 +971,31 @@ fun DocDetailScreen(
                             val orderedSelection = uiState.selectedPages
                             coroutineScope.launch {
                                 val generatedFile = withContext(Dispatchers.IO) {
+                                    val resolved = resolveDecryptedImageFiles(activity, currentDoc, orderedSelection)
+                                    if (resolved.isEmpty()) return@withContext null
                                     val shareDir = getSharedCacheDir(activity)
                                     val target = File(shareDir, "${currentDoc.displayName}_${System.currentTimeMillis()}.pdf")
                                     val pdf = PasswordPdfExporter.generatePdfFile(
                                         context = activity,
                                         baseName = currentDoc.displayName,
-                                        imageFiles = orderedSelection
+                                        imageFiles = resolved
                                     )
-                                    if (pdf != null) {
+                                    if (pdf != null && pdf.exists() && pdf.length() > 0L) {
                                         pdf.copyTo(target, overwrite = true)
                                         pdf.delete()
-                                        target
-                                    } else null
+                                        if (target.exists() && target.length() > 0L) {
+                                            target
+                                        } else {
+                                            target.delete()
+                                            null
+                                        }
+                                    } else {
+                                        pdf?.delete()
+                                        null
+                                    }
                                 }
                                 viewModel.setSharingState(false)
-                                if (generatedFile != null) {
+                                if (generatedFile != null && generatedFile.exists() && generatedFile.length() > 0L) {
                                     val uri = FileProvider.getUriForFile(
                                         activity,
                                         "${activity.packageName}.fileprovider",
@@ -971,7 +1008,7 @@ fun DocDetailScreen(
                                     }
                                     activity.startActivity(Intent.createChooser(shareIntent, "Share PDF"))
                                 } else {
-                                    snackbarHostState.showSnackbar("Failed to build PDF")
+                                    snackbarHostState.showSnackbar("Couldn't prepare the file")
                                 }
                             }
                         }
@@ -990,18 +1027,26 @@ fun DocDetailScreen(
                             val orderedSelection = uiState.selectedPages
                             coroutineScope.launch {
                                 val uris = withContext(Dispatchers.IO) {
+                                    val resolved = resolveDecryptedImageFiles(activity, currentDoc, orderedSelection)
+                                    if (resolved.isEmpty()) return@withContext emptyList<Uri>()
                                     val shareDir = getSharedCacheDir(activity)
                                     val uriList = ArrayList<Uri>()
-                                    orderedSelection.forEachIndexed { i, file ->
+                                    resolved.forEachIndexed { i, file ->
                                         try {
-                                            val shareFile = File(shareDir, "${currentDoc.displayName}_p${i + 1}_${System.currentTimeMillis()}.jpg")
-                                            file.copyTo(shareFile, overwrite = true)
-                                            val u = FileProvider.getUriForFile(
-                                                activity,
-                                                "${activity.packageName}.fileprovider",
-                                                shareFile
-                                            )
-                                            uriList.add(u)
+                                            if (file.exists() && file.length() > 0L) {
+                                                val shareFile = File(shareDir, "${currentDoc.displayName}_p${i + 1}_${System.currentTimeMillis()}.jpg")
+                                                file.copyTo(shareFile, overwrite = true)
+                                                if (shareFile.exists() && shareFile.length() > 0L) {
+                                                    val u = FileProvider.getUriForFile(
+                                                        activity,
+                                                        "${activity.packageName}.fileprovider",
+                                                        shareFile
+                                                    )
+                                                    uriList.add(u)
+                                                } else {
+                                                    shareFile.delete()
+                                                }
+                                            }
                                         } catch (_: Exception) {}
                                     }
                                     uriList
@@ -1017,13 +1062,13 @@ fun DocDetailScreen(
                                     } else {
                                         Intent(Intent.ACTION_SEND_MULTIPLE).apply {
                                             type = "image/jpeg"
-                                            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                                            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
                                     }
                                     activity.startActivity(Intent.createChooser(shareIntent, "Share Images"))
                                 } else {
-                                    snackbarHostState.showSnackbar("Failed to prepare images")
+                                    snackbarHostState.showSnackbar("Couldn't prepare the file")
                                 }
                             }
                         }
@@ -1409,6 +1454,82 @@ fun DocDetailScreen(
             dismissButton = {
                 TextButton(onClick = { showAdvancedPdfDialog = false }) {
                     Text("Cancel", color = colors.textMuted)
+                }
+            }
+        )
+    }
+
+    if (showSaveToDeviceDialog || isSavingToDevice) {
+        val targetPages = remember(uiState.selectedPages, currentDoc.imageFiles) {
+            if (uiState.selectedPages.isNotEmpty()) uiState.selectedPages else currentDoc.imageFiles
+        }
+        SaveToDeviceDialog(
+            docTitle = uiState.title.ifEmpty { currentDoc.displayName },
+            isSaving = isSavingToDevice,
+            progressText = saveProgressText,
+            onDismiss = { showSaveToDeviceDialog = false },
+            onSaveJpg = {
+                isSavingToDevice = true
+                saveProgressText = "Preparing pages..."
+                coroutineScope.launch {
+                    val res = SaveToDeviceManager.saveDocAsJpg(
+                        context = activity,
+                        doc = currentDoc,
+                        customPages = targetPages,
+                        onProgress = { current, total ->
+                            saveProgressText = "Saving page $current of $total to Pictures/ScanVault..."
+                        }
+                    )
+                    isSavingToDevice = false
+                    showSaveToDeviceDialog = false
+                    when (res) {
+                        is SaveToDeviceResult.Success -> {
+                            val msg = "Saved to Pictures/ScanVault"
+                            val snackbarResult = snackbarHostState.showSnackbar(
+                                message = msg,
+                                actionLabel = "Open",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (snackbarResult == SnackbarResult.ActionPerformed && res.firstUri != null) {
+                                SaveToDeviceManager.openSavedFile(activity, res.firstUri, res.mimeType)
+                            }
+                        }
+                        is SaveToDeviceResult.Failure -> {
+                            snackbarHostState.showSnackbar(res.message)
+                        }
+                    }
+                }
+            },
+            onSavePdf = {
+                isSavingToDevice = true
+                saveProgressText = "Building PDF..."
+                coroutineScope.launch {
+                    val res = SaveToDeviceManager.saveDocAsPdf(
+                        context = activity,
+                        doc = currentDoc,
+                        customPages = targetPages,
+                        onProgress = { current, total ->
+                            saveProgressText = if (current == 1) "Generating PDF..." else "Writing to Documents/ScanVault..."
+                        }
+                    )
+                    isSavingToDevice = false
+                    showSaveToDeviceDialog = false
+                    when (res) {
+                        is SaveToDeviceResult.Success -> {
+                            val msg = "Saved to Documents/ScanVault"
+                            val snackbarResult = snackbarHostState.showSnackbar(
+                                message = msg,
+                                actionLabel = "Open",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (snackbarResult == SnackbarResult.ActionPerformed && res.firstUri != null) {
+                                SaveToDeviceManager.openSavedFile(activity, res.firstUri, res.mimeType)
+                            }
+                        }
+                        is SaveToDeviceResult.Failure -> {
+                            snackbarHostState.showSnackbar(res.message)
+                        }
+                    }
                 }
             }
         )

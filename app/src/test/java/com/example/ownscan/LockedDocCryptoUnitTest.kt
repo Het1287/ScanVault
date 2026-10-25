@@ -321,4 +321,61 @@ class LockedDocCryptoUnitTest {
         assertEquals("PAGE_1_INITIAL", restored1.readText())
         assertEquals("PAGE_2_APPENDED_SCAN", restored2.readText())
     }
+    @Test
+    fun testLockedDocSaveEditorChangesReencryption() = runBlocking {
+        // Setup locked document with DEK
+        val docFolder = File(tempDir, "1729528000000__TestLockedDoc")
+        docFolder.mkdirs()
+        val page1 = File(docFolder, "page_1.jpg")
+        page1.writeBytes("ORIGINAL_UNEDITED_PAGE".toByteArray())
+        LockedDocCryptoManager.lockDocument(null, docFolder, testKey)
+
+        val encFile = File(docFolder, "page_1.jpg.enc")
+        assertTrue(encFile.exists())
+        assertFalse(page1.exists())
+
+        // Simulate session unlocked directory
+        val sessionDir = File(tempDir, "session_unlocked/1729528000000__TestLockedDoc")
+        sessionDir.mkdirs()
+        val sessionPage = File(sessionDir, "page_1.jpg")
+        val dek = LockedDocCryptoManager.getOrDecryptDek(docFolder, testKey)
+        LockedDocCryptoManager.decryptFile(encFile, sessionPage, dek)
+        assertEquals("ORIGINAL_UNEDITED_PAGE", sessionPage.readText())
+
+        // Simulate user making an edit in ImageEditorScreen
+        sessionPage.writeBytes("EDITED_PAGE_WITH_FILTER_AND_ANNOTATIONS".toByteArray())
+
+        // Save logic: re-encrypt from sessionPage into docFolder via lock_tmp and atomic rename
+        val lockTmp = File(docFolder, "${encFile.name}.lock_tmp")
+        LockedDocCryptoManager.encryptFile(sessionPage, lockTmp, dek)
+        assertTrue("Verification must pass for lock_tmp", LockedDocCryptoManager.verifyEncryptedChunk(lockTmp, dek))
+        assertTrue("Atomic rename must succeed", lockTmp.renameTo(encFile))
+
+        // Simulate app restart / session wipe
+        sessionDir.deleteRecursively()
+        assertFalse(sessionDir.exists())
+
+        // Re-decrypt from storage
+        val newSessionDir = File(tempDir, "new_session/1729528000000__TestLockedDoc")
+        newSessionDir.mkdirs()
+        val restoredPage = File(newSessionDir, "page_1.jpg")
+        LockedDocCryptoManager.decryptFile(encFile, restoredPage, dek)
+
+        // Verify edited content is preserved!
+        assertEquals("EDITED_PAGE_WITH_FILTER_AND_ANNOTATIONS", restoredPage.readText())
+    }
+
+    @Test
+    fun testSingleLevelFolderModel() {
+        val folder = UserFolder(name = "Finances", docCount = 3)
+        assertEquals("Finances", folder.name)
+        assertEquals("Finances", folder.id)
+        assertNull(folder.parentFolderId)
+    }
+
+    @Test
+    fun testDriveBackupStateFlowObservability() {
+        val initialSet = DriveBackupManager.backedUpDocFolderNames.value
+        assertNotNull(initialSet)
+    }
 }

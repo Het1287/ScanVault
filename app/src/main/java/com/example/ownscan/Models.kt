@@ -21,7 +21,9 @@ data class LocalDoc(
 
 data class UserFolder(
     val name: String,
-    val docCount: Int
+    val docCount: Int,
+    val parentFolderId: String? = null,
+    val id: String = name
 )
 
 data class ToolItem(
@@ -39,4 +41,3 @@ data class ToolCompletionResult(
     val originalBytes: Long = 0L,
     val newBytes: Long = 0L
 )
-

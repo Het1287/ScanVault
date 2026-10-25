@@ -73,6 +73,46 @@ fun getSharedCacheDir(context: Context): File {
     return dir
 }
 
+fun clearSharedCacheDir(context: Context) {
+    try {
+        val dir = File(context.cacheDir, "shared")
+        if (dir.exists()) {
+            dir.listFiles()?.forEach { it.delete() }
+        }
+    } catch (_: Exception) {}
+}
+
+/**
+ * Resolves decrypted image files from the ephemeral session cache if the document is locked.
+ * Unlocked documents return existing image files directly.
+ */
+suspend fun resolveDecryptedImageFiles(
+    context: Context,
+    doc: LocalDoc,
+    inputFiles: List<File>? = null
+): List<File> = withContext(Dispatchers.IO) {
+    val rawFiles = inputFiles ?: doc.imageFiles
+    if (!doc.isLocked) {
+        return@withContext rawFiles.filter { it.exists() && it.length() > 0L }
+    }
+    val sessionDir = try {
+        LockedDocCryptoManager.getUnlockedSessionDir(context, doc.folderName)
+            ?: LockedDocCryptoManager.prepareUnlockedSession(context, doc.directory)
+    } catch (e: Exception) {
+        android.util.Log.e("FavoritesAndShare", "Failed to decrypt locked doc for sharing: ${e.message}", e)
+        return@withContext emptyList()
+    }
+
+    rawFiles.map { file ->
+        if (file.name.endsWith(".enc", ignoreCase = true)) {
+            val plainName = file.name.removeSuffix(".enc")
+            File(sessionDir, plainName)
+        } else {
+            File(sessionDir, file.name)
+        }
+    }.filter { it.exists() && it.length() > 0L }
+}
+
 fun shareDocAsPdf(
     activity: Activity,
     doc: LocalDoc,
@@ -83,34 +123,49 @@ fun shareDocAsPdf(
     Toast.makeText(activity, "Preparing PDF...", Toast.LENGTH_SHORT).show()
     val sanitized = sanitizeName(customName).ifEmpty { doc.displayName }
     (activity as? FragmentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
+        val pages = resolveDecryptedImageFiles(activity, doc)
+        if (pages.isEmpty()) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
+            }
+            return@launch
+        }
         val shareDir = getSharedCacheDir(activity)
         val shareFile = File(shareDir, "${sanitized}_${System.currentTimeMillis()}.pdf")
         val generatedFile = PasswordPdfExporter.generatePdfFile(
             context = activity,
             baseName = sanitized,
-            imageFiles = doc.imageFiles,
+            imageFiles = pages,
             password = password,
             watermarkText = watermarkText
         )
-        if (generatedFile != null) {
+        if (generatedFile != null && generatedFile.exists() && generatedFile.length() > 0L) {
             generatedFile.copyTo(shareFile, overwrite = true)
             generatedFile.delete()
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                activity,
-                "${activity.packageName}.fileprovider",
-                shareFile
-            )
-            withContext(Dispatchers.Main) {
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/pdf"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            if (shareFile.exists() && shareFile.length() > 0L) {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    activity,
+                    "${activity.packageName}.fileprovider",
+                    shareFile
+                )
+                withContext(Dispatchers.Main) {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    activity.startActivity(Intent.createChooser(shareIntent, "Share $sanitized as PDF"))
                 }
-                activity.startActivity(Intent.createChooser(shareIntent, "Share $sanitized as PDF"))
+            } else {
+                shareFile.delete()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
+                }
             }
         } else {
+            generatedFile?.delete()
             withContext(Dispatchers.Main) {
-                Toast.makeText(activity, "Failed to prepare PDF", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -123,9 +178,16 @@ fun shareDocAsJpg(
 ) {
     Toast.makeText(activity, "Preparing images...", Toast.LENGTH_SHORT).show()
     (activity as? FragmentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
+        val pages = resolveDecryptedImageFiles(activity, doc)
+        if (pages.isEmpty()) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
+            }
+            return@launch
+        }
         val shareDir = getSharedCacheDir(activity)
         val uris = ArrayList<Uri>()
-        doc.imageFiles.forEachIndexed { index, file ->
+        pages.forEachIndexed { index, file ->
             try {
                 val shareFile = File(shareDir, "${doc.displayName}_page_${index + 1}_${System.currentTimeMillis()}.jpg")
                 if (!watermarkText.isNullOrBlank()) {
@@ -135,6 +197,7 @@ fun shareDocAsJpg(
                         if (procBmp != rawBmp) rawBmp.recycle()
                         FileOutputStream(shareFile).use { fos ->
                             procBmp.compress(Bitmap.CompressFormat.JPEG, 92, fos)
+                            fos.flush()
                         }
                         procBmp.recycle()
                     } else {
@@ -143,12 +206,16 @@ fun shareDocAsJpg(
                 } else {
                     file.copyTo(shareFile, overwrite = true)
                 }
-                val u = androidx.core.content.FileProvider.getUriForFile(
-                    activity,
-                    "${activity.packageName}.fileprovider",
-                    shareFile
-                )
-                uris.add(u)
+                if (shareFile.exists() && shareFile.length() > 0L) {
+                    val u = androidx.core.content.FileProvider.getUriForFile(
+                        activity,
+                        "${activity.packageName}.fileprovider",
+                        shareFile
+                    )
+                    uris.add(u)
+                } else {
+                    shareFile.delete()
+                }
             } catch (e: Exception) {
                 android.util.Log.w("FavoritesAndShare", "Failed preparing image for sharing", e)
             }
@@ -171,48 +238,63 @@ fun shareDocAsJpg(
                 }
                 activity.startActivity(Intent.createChooser(shareIntent, "Share ${doc.displayName} as JPG"))
             } else {
-                Toast.makeText(activity, "Failed to prepare images", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
             }
         }
     }
 }
 
 fun shareMultipleImages(activity: Activity, images: List<File>) {
-    Toast.makeText(activity, "Preparing images for sharing...", Toast.LENGTH_SHORT).show()
-    val shareDir = getSharedCacheDir(activity)
-    val uris = ArrayList<Uri>()
-    images.forEachIndexed { index, file ->
-        try {
-            val shareFile = File(shareDir, "Doc_Page_${index + 1}_${System.currentTimeMillis()}.jpg")
-            file.copyTo(shareFile, overwrite = true)
-            val u = androidx.core.content.FileProvider.getUriForFile(
-                activity,
-                "${activity.packageName}.fileprovider",
-                shareFile
-            )
-            uris.add(u)
-        } catch (e: Exception) {
-            android.util.Log.w("FavoritesAndShare", "Failed preparing selected page for sharing", e)
-        }
+    if (images.isEmpty()) {
+        Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
+        return
     }
-
-    if (uris.isNotEmpty()) {
-        val shareIntent = if (uris.size == 1) {
-            Intent(Intent.ACTION_SEND).apply {
-                type = "image/jpeg"
-                putExtra(Intent.EXTRA_STREAM, uris.first())
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-        } else {
-            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "image/jpeg"
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    Toast.makeText(activity, "Preparing images for sharing...", Toast.LENGTH_SHORT).show()
+    (activity as? FragmentActivity)?.lifecycleScope?.launch(Dispatchers.IO) {
+        val shareDir = getSharedCacheDir(activity)
+        val uris = ArrayList<Uri>()
+        images.forEachIndexed { index, file ->
+            try {
+                if (file.name.endsWith(".enc", ignoreCase = true) || !file.exists() || file.length() == 0L) {
+                    return@forEachIndexed
+                }
+                val shareFile = File(shareDir, "Doc_Page_${index + 1}_${System.currentTimeMillis()}.jpg")
+                file.copyTo(shareFile, overwrite = true)
+                if (shareFile.exists() && shareFile.length() > 0L) {
+                    val u = androidx.core.content.FileProvider.getUriForFile(
+                        activity,
+                        "${activity.packageName}.fileprovider",
+                        shareFile
+                    )
+                    uris.add(u)
+                } else {
+                    shareFile.delete()
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("FavoritesAndShare", "Failed preparing selected page for sharing", e)
             }
         }
-        activity.startActivity(Intent.createChooser(shareIntent, "Share Selected Documents"))
-    } else {
-        Toast.makeText(activity, "Failed to prepare images", Toast.LENGTH_SHORT).show()
+
+        withContext(Dispatchers.Main) {
+            if (uris.isNotEmpty()) {
+                val shareIntent = if (uris.size == 1) {
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "image/jpeg"
+                        putExtra(Intent.EXTRA_STREAM, uris.first())
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                } else {
+                    Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                        type = "image/jpeg"
+                        putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                }
+                activity.startActivity(Intent.createChooser(shareIntent, "Share Selected Documents"))
+            } else {
+                Toast.makeText(activity, "Couldn't prepare the file", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
 

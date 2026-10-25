@@ -19,6 +19,10 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.io.File
@@ -157,17 +161,34 @@ object DriveBackupManager {
     }
 
     // ---------------------------------------------------------
-    // LOCAL CACHE MANAGEMENT
+    // LOCAL CACHE & OBSERVABLE STATE MANAGEMENT
     // ---------------------------------------------------------
+
+    private val _backedUpDocFolderNames = MutableStateFlow<Set<String>>(emptySet())
+    val backedUpDocFolderNames: StateFlow<Set<String>> = _backedUpDocFolderNames.asStateFlow()
+
+    private val _uploadingDocFolderNames = MutableStateFlow<Set<String>>(emptySet())
+    val uploadingDocFolderNames: StateFlow<Set<String>> = _uploadingDocFolderNames.asStateFlow()
+
+    fun initLocalCache(context: Context) {
+        val prefs = context.getSharedPreferences(CLOUD_CACHE_PREF, Context.MODE_PRIVATE)
+        val set = prefs.getStringSet(KEY_CACHED_DOC_IDS, emptySet()) ?: emptySet()
+        _backedUpDocFolderNames.value = set
+    }
 
     fun getLocalCachedDocIds(context: Context): Set<String> {
         val prefs = context.getSharedPreferences(CLOUD_CACHE_PREF, Context.MODE_PRIVATE)
-        return prefs.getStringSet(KEY_CACHED_DOC_IDS, emptySet()) ?: emptySet()
+        val set = prefs.getStringSet(KEY_CACHED_DOC_IDS, emptySet()) ?: emptySet()
+        if (_backedUpDocFolderNames.value.isEmpty() && set.isNotEmpty()) {
+            _backedUpDocFolderNames.value = set
+        }
+        return set
     }
 
     fun setLocalCachedDocIds(context: Context, ids: Set<String>) {
         val prefs = context.getSharedPreferences(CLOUD_CACHE_PREF, Context.MODE_PRIVATE)
         prefs.edit().putStringSet(KEY_CACHED_DOC_IDS, ids).apply()
+        _backedUpDocFolderNames.value = ids
     }
 
     fun addDocIdToLocalCache(context: Context, folderName: String) {
@@ -175,6 +196,7 @@ object DriveBackupManager {
         val current = prefs.getStringSet(KEY_CACHED_DOC_IDS, emptySet())?.toMutableSet() ?: mutableSetOf()
         current.add(folderName)
         prefs.edit().putStringSet(KEY_CACHED_DOC_IDS, current).apply()
+        _backedUpDocFolderNames.update { it + folderName }
     }
 
     fun removeDocIdFromLocalCache(context: Context, folderName: String) {
@@ -182,11 +204,13 @@ object DriveBackupManager {
         val current = prefs.getStringSet(KEY_CACHED_DOC_IDS, emptySet())?.toMutableSet() ?: mutableSetOf()
         current.remove(folderName)
         prefs.edit().putStringSet(KEY_CACHED_DOC_IDS, current).apply()
+        _backedUpDocFolderNames.update { it - folderName }
     }
 
     fun clearLocalCloudCache(context: Context) {
         val prefs = context.getSharedPreferences(CLOUD_CACHE_PREF, Context.MODE_PRIVATE)
         prefs.edit().remove(KEY_CACHED_DOC_IDS).apply()
+        _backedUpDocFolderNames.value = emptySet()
     }
 
     // ---------------------------------------------------------
@@ -452,6 +476,7 @@ object DriveBackupManager {
         }
 
         val zipFile = File(context.cacheDir, "temp_doc_${doc.folderName}_${System.currentTimeMillis()}.zip")
+        _uploadingDocFolderNames.update { it + doc.folderName }
         try {
             val email = account.email ?: "unknown"
             val currentFingerprint = computeDocFingerprint(doc)
@@ -533,6 +558,7 @@ object DriveBackupManager {
             Log.e(TAG, "backupSingleDoc failed for '$safeName': ${failure.displayMessage}", e)
             failure
         } finally {
+            _uploadingDocFolderNames.update { it - doc.folderName }
             if (zipFile.exists()) {
                 zipFile.delete()
             }

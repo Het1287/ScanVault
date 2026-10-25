@@ -142,6 +142,9 @@ interface DocumentDao {
     @Query("UPDATE documents_metadata SET expiryDate = :expiryDate WHERE folderName = :folderName")
     fun updateExpiryDate(folderName: String, expiryDate: Long?): Int
 
+    @Query("UPDATE documents_metadata SET timestamp = :timestamp WHERE folderName = :folderName")
+    fun updateTimestamp(folderName: String, timestamp: Long): Int
+
     @Query("DELETE FROM documents_metadata WHERE folderName = :folderName")
     fun deleteByFolderName(folderName: String): Int
 
@@ -201,13 +204,63 @@ data class SearchResultSnippet(
 )
 
 // -------------------------------------------------------------
+// FOLDER ENTITY & DAO (SUBFOLDERS)
+// -------------------------------------------------------------
+
+@Entity(
+    tableName = "folders",
+    indices = [Index(value = ["parentFolderId"])]
+)
+data class FolderEntity(
+    @PrimaryKey
+    val id: String,
+    val name: String,
+    val parentFolderId: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Dao
+interface FolderDao {
+    @Query("SELECT * FROM folders ORDER BY name ASC")
+    fun getAllFolders(): Flow<List<FolderEntity>>
+
+    @Query("SELECT * FROM folders ORDER BY name ASC")
+    fun getAllFoldersList(): List<FolderEntity>
+
+    @Query("SELECT * FROM folders WHERE parentFolderId IS NULL ORDER BY name ASC")
+    fun getRootFolders(): List<FolderEntity>
+
+    @Query("SELECT * FROM folders WHERE parentFolderId = :parentId ORDER BY name ASC")
+    fun getSubfolders(parentId: String): List<FolderEntity>
+
+    @Query("SELECT * FROM folders WHERE id = :id LIMIT 1")
+    fun getById(id: String): FolderEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertOrUpdate(folder: FolderEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertOrUpdateAll(folders: List<FolderEntity>)
+
+    @Query("DELETE FROM folders WHERE id = :id")
+    fun deleteById(id: String): Int
+
+    @Query("DELETE FROM folders WHERE id = :id OR parentFolderId = :id")
+    fun deleteWithChildren(id: String): Int
+
+    @Query("DELETE FROM folders")
+    fun clearAll(): Int
+}
+
+// -------------------------------------------------------------
 // ROOM DATABASE
 // -------------------------------------------------------------
 
-@Database(entities = [DocumentMetadataEntity::class, DocumentFtsEntity::class], version = 4, exportSchema = false)
+@Database(entities = [DocumentMetadataEntity::class, DocumentFtsEntity::class, FolderEntity::class], version = 5, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun documentDao(): DocumentDao
     abstract fun documentFtsDao(): DocumentFtsDao
+    abstract fun folderDao(): FolderDao
 
     companion object {
         @Volatile
@@ -238,6 +291,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `folders` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `parentFolderId` TEXT DEFAULT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                try {
+                    db.execSQL("ALTER TABLE `folders` ADD COLUMN `parentFolderId` TEXT DEFAULT NULL")
+                } catch (_: Exception) {}
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_folders_parentFolderId` ON `folders` (`parentFolderId`)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -245,8 +312,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "scanvault_database.db"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 .also { INSTANCE = it }
             }
@@ -292,6 +358,13 @@ object DocumentRepository {
             if (found != null) return found
         }
         return null
+    }
+
+    suspend fun updateModified(context: Context, folderName: String) = withContext(Dispatchers.IO) {
+        val db = AppDatabase.getInstance(context)
+        val now = System.currentTimeMillis()
+        db.documentDao().updateTimestamp(folderName, now)
+        resolveDocDir(context, folderName)?.setLastModified(now)
     }
 
     suspend fun indexExistingDocs(context: Context) = withContext(Dispatchers.IO) {

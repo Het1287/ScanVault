@@ -235,6 +235,7 @@ fun SignaturePadDialog(
                 .fillMaxWidth(0.92f)
                 .wrapContentHeight()
                 .padding(vertical = 16.dp)
+                .systemBarsPadding()
         ) {
             Column(
                 modifier = Modifier

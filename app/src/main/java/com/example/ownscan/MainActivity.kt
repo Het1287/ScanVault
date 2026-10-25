@@ -5,6 +5,7 @@ import android.content.Intent
 import android.view.WindowManager
 import android.os.Build
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -19,10 +20,12 @@ class MainActivity : FragmentActivity() {
     private val activeIntent = mutableStateOf<Intent?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
             activeIntent.value = intent
             LockedDocCryptoManager.wipeDecryptedSession(applicationContext)
+            clearSharedCacheDir(applicationContext)
         }
         val earlyPrefs = getSharedPreferences("scanvault_settings", Context.MODE_PRIVATE)
         if (earlyPrefs.getBoolean("flag_secure", false)) {

@@ -63,13 +63,13 @@ fun HomeScreenDesign(
 
     Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 22.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 22.dp, end = 22.dp, top = 10.dp, bottom = 24.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(10.dp))
             if (isSelectionMode) {
                 MultiSelectTopBar(
                     selectedCount = selectedDocPaths.size,
@@ -254,10 +254,6 @@ fun HomeScreenDesign(
                     onOpenLocalBackup = onNavigateToSettings
                 )
             }
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
     }

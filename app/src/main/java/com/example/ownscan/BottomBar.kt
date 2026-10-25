@@ -1,5 +1,6 @@
 package com.example.ownscan
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,18 +32,24 @@ fun MockupBottomBar(
     onCenterScanClick: () -> Unit
 ) {
     val colors = LocalAppColors.current
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(82.dp)
-            .background(colors.surface)
-            .border(width = 1.dp, color = colors.divider, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = colors.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        tonalElevation = 3.dp,
+        border = BorderStroke(1.dp, colors.divider)
     ) {
+        Box(
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .height(72.dp)
+            .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -174,6 +181,7 @@ fun MockupBottomBar(
                 )
             }
         }
+    }
     }
 }
 

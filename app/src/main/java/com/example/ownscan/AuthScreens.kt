@@ -53,7 +53,8 @@ fun AppLockGateScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background),
+            .background(colors.background)
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -135,6 +136,7 @@ fun OnboardingAuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
+            .systemBarsPadding()
             .padding(28.dp),
         contentAlignment = Alignment.Center
     ) {

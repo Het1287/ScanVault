@@ -69,8 +69,7 @@ Get the latest APK from the [**Releases page**](https://github.com/Het1287/ScanV
 - [ ] Perspective crop and warp
 - [ ] PDF to Word
 - [ ] Word to PDF
-- [ ] Extract Text from Pdf
-- [ ] 
+- [ ] Extract Text from Pdf 
 
 ---
 

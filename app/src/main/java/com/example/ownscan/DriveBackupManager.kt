@@ -403,10 +403,6 @@ object DriveBackupManager {
         match?.directory?.deleteRecursively()
     }
 
-    fun findLocalDocByFolderName(context: Context, folderName: String): LocalDoc? {
-        return findActiveLocalDoc(context, folderName)
-    }
-
     // ---------------------------------------------------------
     // DRIVE OPERATIONS
     // ---------------------------------------------------------

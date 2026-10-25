@@ -122,14 +122,6 @@ class DocDetailViewModel(
         }
     }
 
-    fun selectPage(pageName: String) {
-        _uiState.update { current ->
-            val newSet = current.selectedPageNames + pageName
-            savedStateHandle[KEY_SELECTED_PAGES] = ArrayList(newSet)
-            current.copy(selectedPageNames = newSet)
-        }
-    }
-
     fun selectAll() {
         _uiState.update { current ->
             val newSet = current.pages.map { it.name }.toSet()

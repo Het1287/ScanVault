@@ -18,14 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-data class SelectionState(
-    val isSelectionMode: Boolean = false,
-    val selectedFolderNames: Set<String> = emptySet()
-) {
-    val count: Int get() = selectedFolderNames.size
-    fun isSelected(folderName: String): Boolean = selectedFolderNames.contains(folderName)
-}
-
 @Composable
 fun MultiSelectTopBar(
     selectedCount: Int,
@@ -369,74 +361,3 @@ fun BulkTagDialog(
     )
 }
 
-@Composable
-fun BulkMoveDialog(
-    userFolders: List<UserFolder>,
-    onDismiss: () -> Unit,
-    onMoveToFolder: (String?) -> Unit
-) {
-    val colors = LocalAppColors.current
-
-    AlertDialog(
-        containerColor = colors.surface,
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Move Documents",
-                color = colors.textPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
-        },
-        text = {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 300.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onMoveToFolder(null)
-                                onDismiss()
-                            },
-                        colors = CardDefaults.cardColors(containerColor = colors.cardBackground)
-                    ) {
-                        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("🏠", fontSize = 20.sp, modifier = Modifier.semantics { contentDescription = "Home" })
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Root (No Folder)", color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
-                items(userFolders, key = { it.name }) { folder ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onMoveToFolder(folder.name)
-                                onDismiss()
-                            },
-                        colors = CardDefaults.cardColors(containerColor = colors.cardBackground)
-                    ) {
-                        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("📁", fontSize = 20.sp, modifier = Modifier.semantics { contentDescription = "Folder" })
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(folder.name, color = colors.textPrimary, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = colors.textMuted)
-            }
-        }
-    )
-}

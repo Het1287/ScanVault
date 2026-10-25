@@ -67,6 +67,10 @@ Get the latest APK from the [**Releases page**](https://github.com/Het1287/ScanV
 - [ ] QR code and barcode scanner
 - [ ] Passport photo maker
 - [ ] Perspective crop and warp
+- [ ] PDF to Word
+- [ ] Word to PDF
+- [ ] Extract Text from Pdf
+- [ ] 
 
 ---
 

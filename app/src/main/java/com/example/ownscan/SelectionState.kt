@@ -12,11 +12,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 
 @Composable
 fun MultiSelectTopBar(
@@ -41,7 +43,7 @@ fun MultiSelectTopBar(
                 onClick = onClearSelection,
                 modifier = Modifier.semantics { contentDescription = "Clear Selection" }
             ) {
-                Text("✕", color = colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(AppIcons.CloseGlyph, color = colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -88,7 +90,44 @@ fun BottomBarAction(
             }
             .padding(horizontal = 4.dp, vertical = 6.dp)
     ) {
-        Text(icon, fontSize = 18.sp)
+        Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+            Text(icon, fontSize = 18.sp)
+        }
+        Text(label, color = effectiveColor, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun BottomBarAction(
+    painter: Painter,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    textColor: Color? = null,
+    iconTint: Color? = null
+) {
+    val colors = LocalAppColors.current
+    val effectiveColor = textColor ?: colors.textPrimary
+    val effectiveIconTint = iconTint ?: effectiveColor
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                contentDescription = label
+            }
+            .padding(horizontal = 4.dp, vertical = 6.dp)
+    ) {
+        Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = effectiveIconTint
+            )
+        }
         Text(label, color = effectiveColor, fontSize = 10.sp, fontWeight = FontWeight.Medium)
     }
 }
@@ -124,20 +163,21 @@ fun MultiSelectBottomBar(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomBarAction(icon = "📁", label = "Move", onClick = onMove)
+            BottomBarAction(painter = AppIcons.MoveVector, label = "Move", onClick = onMove)
             if (canMerge) {
-                BottomBarAction(icon = "📑", label = "Merge", onClick = onMerge, textColor = colors.accent)
+                BottomBarAction(icon = AppIcons.Merge, label = "Merge", onClick = onMerge, textColor = colors.accent)
             }
-            BottomBarAction(icon = "🏷️", label = "Tags", onClick = onTag)
-            BottomBarAction(icon = "📤", label = "Share", onClick = onShare)
-            BottomBarAction(icon = "💾", label = "Save", onClick = onSaveToDevice)
-            BottomBarAction(icon = "☁️", label = "Backup", onClick = onBackup)
-            BottomBarAction(icon = "🔒", label = "Lock", onClick = onLock)
+            BottomBarAction(painter = AppIcons.TagVector, label = "Tags", onClick = onTag)
+            BottomBarAction(painter = AppIcons.ShareVector, label = "Share", onClick = onShare)
+            BottomBarAction(painter = AppIcons.SaveDeviceVector, label = "Save", onClick = onSaveToDevice)
+            BottomBarAction(painter = AppIcons.BackupDriveVector, label = "Backup", onClick = onBackup)
+            BottomBarAction(painter = AppIcons.LockVector, label = "Lock", onClick = onLock)
             BottomBarAction(
-                icon = "🗑️",
+                painter = AppIcons.DeleteVector,
                 label = "Trash",
                 onClick = onDelete,
-                textColor = MaterialTheme.colorScheme.error
+                textColor = MaterialTheme.colorScheme.error,
+                iconTint = MaterialTheme.colorScheme.error
             )
         }
     }

@@ -10,12 +10,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 
 // -------------------------------------------------------------
 // PASSWORD STRENGTH EVALUATOR
@@ -71,7 +75,7 @@ fun ExportEncryptedBackupDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔐", fontSize = 22.sp)
+                Text(AppIcons.KeySecurity, fontSize = 22.sp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Export Encrypted Backup", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
@@ -91,7 +95,7 @@ fun ExportEncryptedBackupDialog(
                     border = BorderStroke(1.dp, colors.accentAmber.copy(alpha = 0.5f))
                 ) {
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.Top) {
-                        Text("⚠️", fontSize = 16.sp)
+                        Text(AppIcons.Warning, fontSize = 16.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Important: Forgotten passwords CANNOT be recovered. ScanVault never stores this password. If you lose it, your backup is permanently inaccessible.",
@@ -115,7 +119,7 @@ fun ExportEncryptedBackupDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                            Text(if (isPasswordVisible) "👁️" else "🙈", fontSize = 14.sp)
+                            Text(if (isPasswordVisible) AppIcons.Visibility else AppIcons.VisibilityOff, fontSize = 14.sp)
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
@@ -231,7 +235,12 @@ fun RestoreEncryptedBackupPasswordDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔓", fontSize = 22.sp)
+                Icon(
+                    painter = AppIcons.UnlockVector,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Enter Backup Password", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
@@ -253,7 +262,7 @@ fun RestoreEncryptedBackupPasswordDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                            Text(if (isPasswordVisible) "👁️" else "🙈", fontSize = 14.sp)
+                            Text(if (isPasswordVisible) AppIcons.Visibility else AppIcons.VisibilityOff, fontSize = 14.sp)
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
@@ -304,7 +313,12 @@ fun LockAccessGateDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔒", fontSize = 22.sp)
+                Icon(
+                    painter = AppIcons.LockVector,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = if (isFolder) "Lock Folder" else "Lock Document",
@@ -324,27 +338,30 @@ fun LockAccessGateDialog(
                 )
 
                 Surface(
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
-                    color = colors.accent.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.25f))
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
-                            text = "ℹ️ Access Gate Notice:",
-                            color = colors.accent,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
+                            text = buildAnnotatedString {
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("Secure backups: ")
+                                }
+                                append("Locked items are excluded from unencrypted Cloud backups to protect your privacy. They are securely included in password-encrypted local backups.")
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "• Encrypted at rest: Page images, OCR text, and originals are encrypted with AES-256-GCM using hardware-backed Android Keystore keys.\n" +
-                                    "• Biometric authentication: Fingerprint, face, or device credential required to unlock.\n" +
-                                    "• In-memory session decryption: Decrypted only on demand during active session; automatically wiped on relock, backgrounding, or inactivity.\n" +
-                                    "• Search privacy: Page text is never indexed in Room or FTS in plaintext; search matches only title and tags and never leaks text snippets.\n" +
-                                    "• Screen protection: Screenshots and recent apps switcher previews are blocked (FLAG_SECURE) while viewing locked documents.\n" +
-                                    "• Secure backups: Locked items are excluded from unencrypted Cloud backups to protect your privacy. They are securely included in password-encrypted local backups.",
-                            color = colors.textSecondary,
-                            fontSize = 11.sp,
-                            lineHeight = 16.sp
+                            text = "If you forget your password, locked documents cannot be recovered.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }

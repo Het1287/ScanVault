@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.components.AppHeader
+import com.example.ownscan.ui.icons.AppIcons
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,7 +48,8 @@ fun ToolsScreenDesign(
     storedDocs: List<LocalDoc>,
     onOpenDocDirectly: (LocalDoc) -> Unit,
     onRefresh: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     onEditPage: (File) -> Unit = {}
 ) {
     val colors = LocalAppColors.current
@@ -507,7 +510,7 @@ fun ToolsScreenDesign(
                                     Text("Original Size", color = colors.textMuted, fontSize = 11.sp)
                                     Text(formatSize(compressOriginalSize), color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
-                                Text("➔", color = colors.textMuted, fontSize = 16.sp)
+                                Text(AppIcons.ArrowRight, color = colors.textMuted, fontSize = 16.sp)
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         text = if (compressionMode == CompressionMode.SLIDER) "Estimated Size" else "Target Maximum",
@@ -661,7 +664,7 @@ fun ToolsScreenDesign(
             onDismissRequest = { uriToMaskWatermark = null },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🌊", fontSize = 22.sp)
+                    Text(AppIcons.Watermark, fontSize = 22.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Watermark Document",
@@ -818,7 +821,7 @@ fun ToolsScreenDesign(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "📄 PDF Document",
+                                            text = "${AppIcons.FilePdf} PDF Document",
                                             color = if (maskWatermarkExportAsPdf) colors.accent else colors.textPrimary,
                                             fontSize = 12.sp,
                                             fontWeight = if (maskWatermarkExportAsPdf) FontWeight.Bold else FontWeight.Normal
@@ -836,7 +839,7 @@ fun ToolsScreenDesign(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "🖼️ JPG Image",
+                                            text = "${AppIcons.FileImage} JPG Image",
                                             color = if (!maskWatermarkExportAsPdf) colors.accent else colors.textPrimary,
                                             fontSize = 12.sp,
                                             fontWeight = if (!maskWatermarkExportAsPdf) FontWeight.Bold else FontWeight.Normal
@@ -897,21 +900,21 @@ fun ToolsScreenDesign(
 
     val pdfConverters = remember {
         listOf(
-            ToolItem("PDF to JPEG", "🖼️", "Convert PDF into photo pages & open in manager", "pdf_to_jpeg")
+            ToolItem("PDF to JPEG", AppIcons.PdfToJpeg, "Convert PDF into photo pages & open in manager", "pdf_to_jpeg")
         )
     }
 
     val imageConverters = remember {
         listOf(
-            ToolItem("Image to PDF", "📄", "Combine multiple photos into a single PDF", "image_to_pdf")
+            ToolItem("Image to PDF", AppIcons.ImageToPdf, "Combine multiple photos into a single PDF", "image_to_pdf")
         )
     }
 
     val directTools = remember {
         listOf(
-            ToolItem("Compress File", "🗜️", "Compress PDF & JPEG with Target KB, Presets & Slider", "compress_file"),
-            ToolItem("Merge PDF", "📑", "Arrange & delete pages visually before merging", "merge_pdf"),
-            ToolItem("Apply Watermark", "🌊", "Add semi-transparent KYC or confidential watermark", "mask_watermark")
+            ToolItem("Compress File", AppIcons.Compress, "Compress PDF & JPEG with Target KB, Presets & Slider", "compress_file"),
+            ToolItem("Merge PDF", AppIcons.Merge, "Arrange & delete pages visually before merging", "merge_pdf"),
+            ToolItem("Apply Watermark", AppIcons.Watermark, "Add semi-transparent KYC or confidential watermark", "mask_watermark")
         )
     }
 
@@ -932,41 +935,14 @@ fun ToolsScreenDesign(
     ) {
         Spacer(modifier = Modifier.height(10.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Document Tools",
-                color = colors.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+        AppHeader(
+            title = "Tools",
+            isProcessing = isProcessing,
+            onSearchClick = onNavigateToSearch
+        )
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (isProcessing) {
-                    CircularProgressIndicator(
-                        color = colors.accent,
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
+        Spacer(modifier = Modifier.height(12.dp))
 
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(colors.cardSubtle)
-                        .clickable { onNavigateToSettings() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("👤", fontSize = 16.sp)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "Convert, compress, and edit documents on your device",
             color = colors.textMuted,

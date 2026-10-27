@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.components.AppHeader
+import com.example.ownscan.ui.icons.AppIcons
 import java.io.File
 
 // -------------------------------------------------------------
@@ -67,7 +69,7 @@ fun HomeScreenDesign(
         contentPadding = PaddingValues(
             start = 22.dp, end = 22.dp, top = 10.dp, bottom = 24.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             if (isSelectionMode) {
@@ -89,41 +91,10 @@ fun HomeScreenDesign(
                     }
                 )
             } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Home",
-                    color = colors.textPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
+                AppHeader(
+                    title = "Home",
+                    onSearchClick = onNavigateToSearch
                 )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    IconButton(
-                        onClick = onNavigateToSearch,
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                    ) {
-                        Text("🔍", fontSize = 18.sp, color = colors.textPrimary)
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                            .clip(CircleShape)
-                            .background(colors.cardSubtle)
-                            .clickable { onNavigateToSettings() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("👤", fontSize = 16.sp)
-                    }
-                }
-            }
             }
         }
 

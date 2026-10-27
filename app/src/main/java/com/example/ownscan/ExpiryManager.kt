@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.work.*
@@ -322,7 +323,12 @@ fun ExpiryDatePickerDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📅", fontSize = 22.sp)
+                Icon(
+                    painter = AppIcons.ExpiryVector,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Document Expiry Date", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
@@ -363,26 +369,36 @@ fun ExpiryDatePickerDialog(
                                 fontSize = 15.sp
                             )
                         }
-                        Text("🗓️", fontSize = 20.sp)
+                        Icon(
+                            painter = AppIcons.ExpiryVector,
+                            contentDescription = "Select Date",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
 
                 if (selectedDateMillis != null && selectedDateMillis!! > 0) {
                     val status = ExpiryHelper.getExpiryStatus(selectedDateMillis)
-                    val statusText = when (status) {
-                        is ExpiryStatus.Expired -> "⚠️ Expired ${status.daysAgo} day(s) ago"
-                        is ExpiryStatus.ExpiringSoon -> "⏳ Expiring soon in ${status.daysLeft} day(s)"
-                        is ExpiryStatus.Valid -> "✅ Valid (${status.daysLeft} days remaining)"
-                        ExpiryStatus.None -> ""
+                    val (statusLabel, statusIcon, statusColor) = when (status) {
+                        is ExpiryStatus.Expired -> Triple("⚠️ Expired ${status.daysAgo} day(s) ago", null, colors.accentRed)
+                        is ExpiryStatus.ExpiringSoon -> Triple("Expiring soon in ${status.daysLeft} day(s)", AppIcons.TimerVector, colors.accentAmber)
+                        is ExpiryStatus.Valid -> Triple("✅ Valid (${status.daysLeft} days remaining)", null, colors.accentGreen)
+                        ExpiryStatus.None -> Triple("", null, colors.textMuted)
                     }
-                    val statusColor = when (status) {
-                        is ExpiryStatus.Expired -> colors.accentRed
-                        is ExpiryStatus.ExpiringSoon -> colors.accentAmber
-                        is ExpiryStatus.Valid -> colors.accentGreen
-                        ExpiryStatus.None -> colors.textMuted
+                    if (statusLabel.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (statusIcon != null) {
+                                Icon(
+                                    painter = statusIcon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = statusColor
+                                )
+                            }
+                            Text(statusLabel, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
                     }
-
-                    Text(statusText, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
         },

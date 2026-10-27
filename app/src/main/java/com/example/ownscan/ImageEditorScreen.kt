@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -80,13 +81,13 @@ enum class DocFilterMode(val label: String) {
     CONTRAST_BOOST("Contrast Boost")
 }
 
-enum class EditorTool(val label: String, val icon: String) {
-    FILTERS("Filters", "🎨"),
-    CROP("Crop", "✂️"),
-    DRAW("Pen", "✏️"),
-    HIGHLIGHT("Highlight", "🖍️"),
-    ERASER("Eraser", "🧽"),
-    SIGNATURE("Signature", "✍️")
+enum class EditorTool(val label: String) {
+    FILTERS("Filters"),
+    CROP("Crop"),
+    DRAW("Pen"),
+    HIGHLIGHT("Highlight"),
+    ERASER("Eraser"),
+    SIGNATURE("Signature")
 }
 
 enum class CropAspectRatio(val label: String) {
@@ -348,7 +349,7 @@ fun FullImageEditorScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onClose) {
-                Text("✕", fontSize = 20.sp, color = colors.textPrimary)
+                Text(AppIcons.CloseGlyph, fontSize = 20.sp, color = colors.textPrimary)
             }
 
             Text(
@@ -1404,6 +1405,14 @@ fun FullImageEditorScreen(
             ) {
                 EditorTool.values().forEach { tool ->
                     val isSelected = activeTool == tool
+                    val toolPainter = when (tool) {
+                        EditorTool.FILTERS -> AppIcons.EditorFilter
+                        EditorTool.CROP -> AppIcons.EditorCrop
+                        EditorTool.DRAW -> AppIcons.EditorPen
+                        EditorTool.HIGHLIGHT -> AppIcons.EditorHighlight
+                        EditorTool.ERASER -> AppIcons.EditorEraser
+                        EditorTool.SIGNATURE -> AppIcons.EditorSignature
+                    }
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = if (isSelected) colors.accent else colors.cardSubtle,
@@ -1432,7 +1441,18 @@ fun FullImageEditorScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp)
                         ) {
-                            Text(tool.icon, fontSize = 14.sp)
+                            Box(
+                                modifier = Modifier.size(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = toolPainter,
+                                    contentDescription = tool.label,
+                                    tint = if (isSelected) Color.White else colors.textPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = tool.label,
                                 color = if (isSelected) Color.White else colors.textPrimary,
@@ -1475,7 +1495,7 @@ fun FullImageEditorScreen(
             onDismissRequest = { showSignaturePicker = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("✍️", fontSize = 20.sp)
+                    Text(AppIcons.Signature, fontSize = 20.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Choose Signature", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }

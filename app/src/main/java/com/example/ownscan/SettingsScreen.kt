@@ -18,9 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.Feedback
+import com.example.ownscan.ui.components.AppHeader
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -299,7 +299,7 @@ fun SettingsScreenDesign(
             onDismissRequest = { showDeleteBackupWarning = false },
             title = {
                 Text(
-                    text = "⚠️ Delete Cloud Backup?",
+                    text = "${AppIcons.Warning} Delete Cloud Backup?",
                     color = MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
@@ -518,12 +518,11 @@ fun SettingsScreenDesign(
     ) {
         Spacer(modifier = Modifier.height(10.dp))
 
-        Text(
-            text = "Settings",
-            color = colors.textPrimary,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+        AppHeader(
+            title = "Settings"
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = "Cloud backup, auto-sync, and theme preferences",
             color = colors.textMuted,
@@ -552,7 +551,12 @@ fun SettingsScreenDesign(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("☁️", fontSize = 26.sp)
+                                Icon(
+                                    painter = AppIcons.BackupDriveVector,
+                                    contentDescription = "Google Drive Sync",
+                                    modifier = Modifier.size(26.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
@@ -640,7 +644,18 @@ fun SettingsScreenDesign(
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                                 border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error.copy(alpha = 0.5f)))
                             ) {
-                                Text("🗑️ Delete Cloud Backup", color = MaterialTheme.colorScheme.error)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        painter = AppIcons.DeleteVector,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Text("Delete Cloud Backup", color = MaterialTheme.colorScheme.error)
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -751,7 +766,7 @@ fun SettingsScreenDesign(
                                     containerColor = if (isDarkTheme) colors.accent else colors.cardSubtle
                                 )
                             ) {
-                                Text("🌙 Dark", color = if (isDarkTheme) Color.White else colors.textPrimary, fontSize = 13.sp)
+                                Text("${AppIcons.ThemeDark} Dark", color = if (isDarkTheme) Color.White else colors.textPrimary, fontSize = 13.sp)
                             }
 
                             Button(
@@ -761,7 +776,7 @@ fun SettingsScreenDesign(
                                     containerColor = if (!isDarkTheme) colors.accent else colors.cardSubtle
                                 )
                             ) {
-                                Text("☀️ Light", color = if (!isDarkTheme) Color.White else colors.textPrimary, fontSize = 13.sp)
+                                Text("${AppIcons.ThemeLight} Light", color = if (!isDarkTheme) Color.White else colors.textPrimary, fontSize = 13.sp)
                             }
                         }
 
@@ -794,7 +809,7 @@ fun SettingsScreenDesign(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (isSelected) {
-                                            Text("✓", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                            Text(AppIcons.CheckmarkGlyph, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -893,12 +908,14 @@ fun SettingsScreenDesign(
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔐", fontSize = 24.sp)
+                            Icon(
+                                painter = painterResource(R.drawable.ic_encrypted_backup),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(26.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Encrypted Local Backup", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text("AES-256-GCM password-protected archive (.zip.enc)", color = colors.textMuted, fontSize = 12.sp)
-                            }
+                            Text("Encrypted Local Backup", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -950,11 +967,18 @@ fun SettingsScreenDesign(
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("📁", fontSize = 24.sp)
+                            Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = AppIcons.FolderVector,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Scheduled Local Auto-Backup (SAF)", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text("Automated AES-256 backup to selected folder/SD card", color = colors.textMuted, fontSize = 12.sp)
+                                Text("Local Auto-backup", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("Automated backup to selected folder", color = colors.textMuted, fontSize = 12.sp)
                             }
                             Switch(
                                 checked = safStatus.isEnabled,
@@ -1110,12 +1134,14 @@ fun SettingsScreenDesign(
                 ) {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🛡️", fontSize = 24.sp)
+                            Icon(
+                                painter = painterResource(R.drawable.ic_security_protection),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(26.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Security & Document Protection", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text("Hardware Keystore AES-256-GCM encryption & Biometrics", color = colors.textMuted, fontSize = 12.sp)
-                            }
+                            Text("Security & Document Protection", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
 
                         Row(
@@ -1216,7 +1242,16 @@ fun SettingsScreenDesign(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("🔒 Screen Security (FLAG_SECURE)", color = colors.textPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        painter = AppIcons.LockVector,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Screen Security", color = colors.textPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                }
                                 Text("Blocks screenshots & hides content in recent apps", color = colors.textMuted, fontSize = 11.sp)
                             }
                             Switch(
@@ -1250,11 +1285,16 @@ fun SettingsScreenDesign(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🗑️", fontSize = 24.sp)
+                            Icon(
+                                painter = AppIcons.DeleteVector,
+                                contentDescription = "Trash",
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
                             Spacer(modifier = Modifier.width(14.dp))
                             Column {
                                 Text("Trash", color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Text("Restore or permanently delete (30-day auto-purge)", color = colors.textMuted, fontSize = 12.sp)
+                                Text("Restore or permanently delete (30-day auto-delete)", color = colors.textMuted, fontSize = 12.sp)
                             }
                         }
                         Text("›", color = colors.accent, fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -1295,7 +1335,7 @@ fun SettingsScreenDesign(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Feedback,
+                                    imageVector = AppIcons.Feedback,
                                     contentDescription = stringResource(R.string.support_send_feedback_title),
                                     tint = colors.accent,
                                     modifier = Modifier.size(24.dp)
@@ -1334,7 +1374,7 @@ fun SettingsScreenDesign(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.BugReport,
+                                    imageVector = AppIcons.BugReport,
                                     contentDescription = stringResource(R.string.support_report_bug_title),
                                     tint = colors.accent,
                                     modifier = Modifier.size(24.dp)

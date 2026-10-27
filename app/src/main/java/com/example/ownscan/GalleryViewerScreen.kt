@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import java.io.File
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -160,7 +161,7 @@ fun GalleryViewerScreen(
                     .background(Color.Black.copy(alpha = 0.5f), CircleShape)
                     .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
             ) {
-                Text("✕", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(AppIcons.CloseGlyph, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Text(
@@ -175,7 +176,18 @@ fun GalleryViewerScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
             ) {
-                Text("✏️ Edit", fontSize = 13.sp, color = Color.White)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        painter = AppIcons.EditVector,
+                        contentDescription = "Edit image",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text("Edit", fontSize = 13.sp, color = Color.White)
+                }
             }
         }
     }
@@ -385,7 +397,7 @@ private fun GalleryPageViewerItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("🔍", fontSize = 12.sp)
+                    Text(AppIcons.Search, fontSize = 12.sp)
                     Text(
                         text = "${(scale * 10).roundToInt() / 10f}x • Tap to Reset",
                         color = Color.White,

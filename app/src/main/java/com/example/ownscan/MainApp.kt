@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -181,6 +183,7 @@ fun MainApp(
     var globalSyncStatusText by remember { mutableStateOf("") }
     var globalSyncCompletionMsg by remember { mutableStateOf<String?>(null) }
     var showTrashScreen by remember { mutableStateOf(false) }
+    var showSearchScreen by rememberSaveable { mutableStateOf(false) }
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedDocPaths by remember { mutableStateOf(setOf<String>()) }
     var showBatchDeleteConfirm by remember { mutableStateOf(false) }
@@ -524,7 +527,7 @@ fun MainApp(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("✨", fontSize = 16.sp)
+                                Text(AppIcons.Sparkle, fontSize = 16.sp)
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Suggested Title (Tap to apply):", fontSize = 10.sp, color = colors.textMuted)
                                     Text(suggestedDocName!!, fontSize = 13.sp, color = colors.accent, fontWeight = FontWeight.SemiBold)
@@ -623,6 +626,47 @@ fun MainApp(
             },
             onEditPage = { fileToEdit -> editingFileState = fileToEdit },
             onSetAwaitingExternalResult = { isAwaitingExternalResult = it }
+        )
+    } else if (showSearchScreen) {
+        SearchScreen(
+            activity = activity,
+            storedDocs = storedDocs,
+            userFolders = userFolders,
+            favoritePaths = favoritePaths,
+            backedUpDocFolderNames = backedUpDocFolderNames,
+            sessionUnlockedFolders = sessionUnlockedFolders,
+            onOpenDoc = { doc ->
+                if (doc.isLocked && !sessionUnlockedFolders.contains(doc.folderName)) {
+                    BiometricAuthManager.authenticate(
+                        activity = activity as FragmentActivity,
+                        title = "Unlock ${doc.displayName}",
+                        onSuccess = {
+                            coroutineScope.launch {
+                                try {
+                                    LockedDocCryptoManager.prepareUnlockedSession(activity, doc.directory)
+                                    sessionUnlockedFolders.add(doc.folderName)
+                                    markDocOpened(activity, doc.directory.absolutePath)
+                                    selectedDocForDetail = doc
+                                } catch (e: Exception) {
+                                    Toast.makeText(activity, "Failed to unlock: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        },
+                        onError = { err ->
+                            Toast.makeText(activity, err, Toast.LENGTH_LONG).show()
+                        }
+                    )
+                } else {
+                    markDocOpened(activity, doc.directory.absolutePath)
+                    selectedDocForDetail = doc
+                }
+            },
+            onToggleFavorite = { path ->
+                favoritePaths = toggleDocFavorite(activity, path)
+            },
+            onEditPage = { file -> editingFileState = file },
+            onRefresh = { refreshDocs() },
+            onBack = { showSearchScreen = false }
         )
     } else if (showTrashScreen) {
         TrashScreen(
@@ -824,7 +868,7 @@ fun MainApp(
                             }
                         }
                     )
-                } else {
+                } else if (activeFolder == null) {
                     MockupBottomBar(
                         selectedTab = currentTab,
                         onSelectTab = {
@@ -930,7 +974,7 @@ fun MainApp(
                                         onClick = { globalSyncCompletionMsg = null },
                                         modifier = Modifier.size(24.dp)
                                     ) {
-                                        Text("✕", color = colors.textMuted, fontSize = 12.sp)
+                                        Text(AppIcons.CloseGlyph, color = colors.textMuted, fontSize = 12.sp)
                                     }
                                 }
                             }
@@ -978,7 +1022,7 @@ fun MainApp(
                             },
                             onEditPage = { file -> editingFileState = file },
                             onRefresh = { refreshDocs() },
-                            onNavigateToSearch = { currentTab = 1 },
+                            onNavigateToSearch = { showSearchScreen = true },
                             onNavigateToSettings = { currentTab = 3 },
                             isSelectionMode = isSelectionMode,
                             selectedDocPaths = selectedDocPaths,
@@ -1063,6 +1107,7 @@ fun MainApp(
                                 triggerAutoSyncIfEnabled()
                             },
                             onNavigateToSettings = { currentTab = 3 },
+                            onNavigateToSearch = { showSearchScreen = true },
                             isSelectionMode = isSelectionMode,
                             selectedDocPaths = selectedDocPaths,
                             onUpdateSelectionMode = { isSelectionMode = it },
@@ -1102,6 +1147,7 @@ fun MainApp(
                                 triggerAutoSyncIfEnabled()
                             },
                             onNavigateToSettings = { currentTab = 3 },
+                            onNavigateToSearch = { showSearchScreen = true },
                             onEditPage = { file -> editingFileState = file }
                         )
                         3 -> SettingsScreenDesign(
@@ -1284,7 +1330,18 @@ fun MainApp(
                                 colors = ButtonDefaults.buttonColors(containerColor = colors.cardSubtle),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("📁 ${folder.name}", color = colors.textPrimary)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        painter = AppIcons.FolderVector,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(folder.name, color = colors.textPrimary)
+                                }
                             }
                         }
                     }

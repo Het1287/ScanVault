@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 
 /**
  * Bottom Sheet / Dialog with exactly 2 options:
@@ -101,7 +102,7 @@ fun SaveToDeviceDialog(
                         )
                     },
                     leadingContent = {
-                        Text("🖼️", fontSize = 24.sp)
+                        Text(AppIcons.FileImage, fontSize = 24.sp)
                     },
                     colors = ListItemDefaults.colors(containerColor = colors.cardBackground),
                     modifier = Modifier
@@ -126,7 +127,7 @@ fun SaveToDeviceDialog(
                         )
                     },
                     leadingContent = {
-                        Text("📄", fontSize = 24.sp)
+                        Text(AppIcons.FilePdf, fontSize = 24.sp)
                     },
                     colors = ListItemDefaults.colors(containerColor = colors.cardBackground),
                     modifier = Modifier

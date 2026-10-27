@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -496,14 +497,26 @@ fun CloudBackupsDialog(
                                             )
                                             if (item.isLockedBackup) {
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                Text("🔒", fontSize = 13.sp)
+                                                Icon(
+                                                    painter = AppIcons.LockVector,
+                                                    contentDescription = "Locked backup",
+                                                    modifier = Modifier.size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
                                             }
                                         }
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             if (!item.parentFolder.isNullOrBlank()) {
+                                                Icon(
+                                                    painter = AppIcons.FolderVector,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(13.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.width(3.dp))
                                                 Text(
-                                                    text = "📁 ${item.parentFolder}  •  ",
+                                                    text = "${item.parentFolder}  •  ",
                                                     color = colors.accent,
                                                     fontSize = 12.sp
                                                 )
@@ -521,7 +534,12 @@ fun CloudBackupsDialog(
                                             onClick = { itemToDelete = item },
                                             enabled = !isRestoring
                                         ) {
-                                            Text("🗑️", fontSize = 14.sp)
+                                            Icon(
+                                                painter = AppIcons.DeleteVector,
+                                                contentDescription = "Delete",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
                                         }
 
                                         Spacer(modifier = Modifier.width(4.dp))
@@ -620,7 +638,12 @@ fun LockedDocCloudBackupDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔒", fontSize = 22.sp)
+                Icon(
+                    painter = AppIcons.LockVector,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Cloud Backup Notice",

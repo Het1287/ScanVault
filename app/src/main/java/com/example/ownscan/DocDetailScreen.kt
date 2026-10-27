@@ -22,9 +22,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -286,7 +284,7 @@ fun DocDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { viewModel.clearSelection() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Close Selection", tint = colors.textPrimary)
+                            Icon(AppIcons.Close, contentDescription = "Close Selection", tint = colors.textPrimary)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -328,7 +326,7 @@ fun DocDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.textPrimary)
+                            Icon(AppIcons.ArrowBack, contentDescription = "Back", tint = colors.textPrimary)
                         }
                         Spacer(modifier = Modifier.width(4.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -342,15 +340,37 @@ fun DocDetailScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 if (uiState.isLocked) {
+                                    val isSessionUnlocked = LockedDocCryptoManager.getUnlockedSessionDir(activity, currentDoc.folderName) != null
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("🔒", fontSize = 14.sp)
+                                    Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            painter = if (isSessionUnlocked) AppIcons.UnlockVector else AppIcons.LockVector,
+                                            contentDescription = if (isSessionUnlocked) "Unlocked" else "Locked",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                                 if (uploadingFolderNames.contains(currentDoc.folderName)) {
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("⏳", fontSize = 14.sp)
+                                    Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            painter = AppIcons.TimerVector,
+                                            contentDescription = "Uploading",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 } else if (backedUpFolderNames.contains(currentDoc.folderName)) {
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("☁️", fontSize = 14.sp)
+                                    Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            painter = AppIcons.BackupDone,
+                                            contentDescription = "Backed up to Drive",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
                             Text(
@@ -364,7 +384,7 @@ fun DocDetailScreen(
                         // Overflow Menu Button (⋮)
                         Box {
                             IconButton(onClick = { showOverflowMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "More Options", tint = colors.textPrimary)
+                                Icon(AppIcons.MoreVert, contentDescription = "More Options", tint = colors.textPrimary)
                             }
                             DropdownMenu(
                                 expanded = showOverflowMenu,
@@ -373,7 +393,16 @@ fun DocDetailScreen(
                             ) {
                                 DropdownMenuItem(
                                     text = { Text("Save to device", color = colors.textPrimary) },
-                                    leadingIcon = { Text("💾", fontSize = 16.sp) },
+                                    leadingIcon = {
+                                        Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                painter = AppIcons.SaveDeviceVector,
+                                                contentDescription = "Save to device",
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    },
                                     onClick = {
                                         showOverflowMenu = false
                                         requireAuthIfLocked("Save to device") {
@@ -388,7 +417,16 @@ fun DocDetailScreen(
                                             color = colors.textPrimary
                                         )
                                     },
-                                    leadingIcon = { Text("📅", fontSize = 16.sp) },
+                                    leadingIcon = {
+                                        Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                painter = AppIcons.ExpiryVector,
+                                                contentDescription = "Expiry Date",
+                                                modifier = Modifier.size(20.dp),
+                                                tint = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    },
                                     onClick = {
                                         showOverflowMenu = false
                                         showExpiryDialog = true
@@ -397,11 +435,20 @@ fun DocDetailScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            if (uiState.isLocked) "Unlock Document" else "Lock Document",
+                                            if (uiState.isLocked) "Unlock document" else "Lock document",
                                             color = colors.textPrimary
                                         )
                                     },
-                                    leadingIcon = { Text(if (uiState.isLocked) "🔓" else "🔒", fontSize = 16.sp) },
+                                    leadingIcon = {
+                                         Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                             Icon(
+                                                 painter = if (uiState.isLocked) AppIcons.UnlockVector else AppIcons.LockVector,
+                                                 contentDescription = if (uiState.isLocked) "Unlock document" else "Lock document",
+                                                 modifier = Modifier.size(20.dp),
+                                                 tint = MaterialTheme.colorScheme.onSurface
+                                             )
+                                         }
+                                     },
                                     onClick = {
                                         showOverflowMenu = false
                                         if (uiState.isLocked) {
@@ -453,7 +500,7 @@ fun DocDetailScreen(
                         shape = RoundedCornerShape(16.dp),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                     ) {
-                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(AppIcons.AddPhoto, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Import", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
@@ -475,7 +522,7 @@ fun DocDetailScreen(
                         containerColor = colors.accent,
                         contentColor = Color.White,
                         shape = RoundedCornerShape(16.dp),
-                        icon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                        icon = { Icon(AppIcons.Camera, contentDescription = null) },
                         text = { Text("+ Scan", fontWeight = FontWeight.Bold, fontSize = 14.sp) }
                     )
                 }
@@ -502,7 +549,7 @@ fun DocDetailScreen(
                         ) {
                         // Copy
                         BottomBarAction(
-                            icon = "📋",
+                            painter = AppIcons.CopyVector,
                             label = "Copy",
                             onClick = {
                                 requireAuthIfLocked("Copy Pages") {
@@ -513,7 +560,7 @@ fun DocDetailScreen(
 
                         // Move
                         BottomBarAction(
-                            icon = "📦",
+                            painter = AppIcons.MoveVector,
                             label = "Move",
                             onClick = {
                                 requireAuthIfLocked("Move Pages") {
@@ -524,7 +571,7 @@ fun DocDetailScreen(
 
                         // Share
                         BottomBarAction(
-                            icon = "📤",
+                            painter = AppIcons.ShareVector,
                             label = "Share",
                             onClick = {
                                 requireAuthIfLocked("Share Pages") {
@@ -536,9 +583,10 @@ fun DocDetailScreen(
                         // Edit (Only enabled when exactly 1 page selected)
                         val canEdit = uiState.selectedCount == 1
                         BottomBarAction(
-                            icon = "✏️",
+                            painter = AppIcons.EditVector,
                             label = "Edit",
                             textColor = if (canEdit) colors.textPrimary else colors.textMuted.copy(alpha = 0.4f),
+                            iconTint = if (canEdit) colors.textPrimary else colors.textMuted.copy(alpha = 0.4f),
                             onClick = {
                                 if (canEdit) {
                                     val singleFile = uiState.selectedPages.firstOrNull()
@@ -553,9 +601,10 @@ fun DocDetailScreen(
 
                         // Delete
                         BottomBarAction(
-                            icon = "🗑️",
+                            painter = AppIcons.DeleteVector,
                             label = "Delete",
                             textColor = MaterialTheme.colorScheme.error,
+                            iconTint = MaterialTheme.colorScheme.error,
                             onClick = {
                                 requireAuthIfLocked("Delete Pages") {
                                     showDeleteConfirmDialog = true
@@ -591,7 +640,7 @@ fun DocDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text("🛡️", fontSize = 20.sp)
+                            Text(AppIcons.Shield, fontSize = 20.sp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Sensitive ID Card Detected", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = colors.textPrimary)
                                 Text("Aadhaar/PAN/ID card detected. Protect with biometric lock?", fontSize = 11.sp, color = colors.textMuted)
@@ -610,7 +659,7 @@ fun DocDetailScreen(
                                 Text("Lock", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
                             }
                             IconButton(onClick = { dismissIdCardPermanently() }) {
-                                Text("✕", fontSize = 14.sp, color = colors.textMuted)
+                                Text(AppIcons.CloseGlyph, fontSize = 14.sp, color = colors.textMuted)
                             }
                         }
                     }
@@ -633,7 +682,14 @@ fun DocDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text("📅", fontSize = 20.sp)
+                            Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = AppIcons.ExpiryVector,
+                                    contentDescription = "Expiry Date",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = colors.accentGreen
+                                )
+                            }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Expiry Date: ${ExpiryHelper.formatDate(detectedExpiryEpoch)}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = colors.textPrimary)
                                 Text("Set reminder before this document expires?", fontSize = 11.sp, color = colors.textMuted)
@@ -653,7 +709,7 @@ fun DocDetailScreen(
                                 Text("Remind", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
                             }
                             IconButton(onClick = { dismissedExpiryBanner = true }) {
-                                Text("✕", fontSize = 14.sp, color = colors.textMuted)
+                                Text(AppIcons.CloseGlyph, fontSize = 14.sp, color = colors.textMuted)
                             }
                         }
                     }
@@ -671,7 +727,7 @@ fun DocDetailScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text("📄", fontSize = 54.sp)
+                            Text(AppIcons.FilePdf, fontSize = 54.sp)
                             Text("No pages in this document", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary, fontWeight = FontWeight.Bold)
                             Text("Tap '+ Scan' to scan pages with your camera, or import images/PDFs from your device.", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                             Spacer(modifier = Modifier.height(8.dp))
@@ -772,7 +828,12 @@ fun DocDetailScreen(
                                                     .background(colors.cardSubtle),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Text("🔒", fontSize = 28.sp)
+                                                Icon(
+                                                    painter = AppIcons.LockVector,
+                                                    contentDescription = "Locked",
+                                                    modifier = Modifier.size(28.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
                                             }
                                         } else {
                                             AsyncImage(
@@ -823,7 +884,7 @@ fun DocDetailScreen(
                                             ) {
                                                 Box(contentAlignment = Alignment.Center) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Check,
+                                                        imageVector = AppIcons.Check,
                                                         contentDescription = "Selected",
                                                         tint = Color.White,
                                                         modifier = Modifier.size(16.dp)
@@ -896,7 +957,7 @@ fun DocDetailScreen(
                 ListItem(
                     headlineContent = { Text("Import Images", fontWeight = FontWeight.SemiBold, color = colors.textPrimary) },
                     supportingContent = { Text("Select pictures from your photo gallery", color = colors.textMuted) },
-                    leadingContent = { Text("🖼️", fontSize = 24.sp) },
+                    leadingContent = { Text(AppIcons.FileImage, fontSize = 24.sp) },
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .clickable {
@@ -909,7 +970,16 @@ fun DocDetailScreen(
                 ListItem(
                     headlineContent = { Text("Import Files (PDF / Image)", fontWeight = FontWeight.SemiBold, color = colors.textPrimary) },
                     supportingContent = { Text("Extract pages from PDF documents or external files", color = colors.textMuted) },
-                    leadingContent = { Text("📁", fontSize = 24.sp) },
+                    leadingContent = {
+                        Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                            Icon(
+                                painter = AppIcons.FolderVector,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .clickable {
@@ -947,7 +1017,7 @@ fun DocDetailScreen(
                 ListItem(
                     headlineContent = { Text("Share as PDF", fontWeight = FontWeight.SemiBold, color = colors.textPrimary) },
                     supportingContent = { Text("Compile selected pages into one PDF in current order", color = colors.textMuted) },
-                    leadingContent = { Text("📄", fontSize = 24.sp) },
+                    leadingContent = { Text(AppIcons.FilePdf, fontSize = 24.sp) },
                     trailingContent = {
                         TextButton(onClick = {
                             showShareFormatSheet = false
@@ -1011,7 +1081,7 @@ fun DocDetailScreen(
                 ListItem(
                     headlineContent = { Text("Share as JPG Images", fontWeight = FontWeight.SemiBold, color = colors.textPrimary) },
                     supportingContent = { Text("Share individual image files", color = colors.textMuted) },
-                    leadingContent = { Text("🖼️", fontSize = 24.sp) },
+                    leadingContent = { Text(AppIcons.FileImage, fontSize = 24.sp) },
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .clickable {
@@ -1373,8 +1443,14 @@ fun DocDetailScreen(
                             onCheckedChange = { protectPwd = it },
                             colors = CheckboxDefaults.colors(checkedColor = colors.accent)
                         )
+                        Icon(
+                            painter = AppIcons.LockVector,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("🔒 Protect PDF with Password", color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Protect PDF with Password", color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     if (protectPwd) {

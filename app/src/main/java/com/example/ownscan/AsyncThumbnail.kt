@@ -10,7 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,11 +27,11 @@ fun AsyncThumbnail(
     modifier: Modifier = Modifier,
     widthPx: Int = 160,
     heightPx: Int = 200,
-    placeholderIcon: String = "📄",
+    placeholderIcon: String = AppIcons.FilePdf,
     isLocked: Boolean = false
 ) {
     val colors = LocalAppColors.current
-    val effectivePlaceholder = if (isLocked || (file != null && file.name.endsWith(".enc", ignoreCase = true))) "🔒" else placeholderIcon
+    val effectivePlaceholder = if (isLocked || (file != null && file.name.endsWith(".enc", ignoreCase = true))) AppIcons.Lock else placeholderIcon
     val isEncrypted = file != null && file.name.endsWith(".enc", ignoreCase = true)
 
     val bitmapState = produceState<Bitmap?>(initialValue = null, key1 = file?.absolutePath, key2 = file?.lastModified()) {
@@ -65,7 +67,16 @@ fun AsyncThumbnail(
             modifier = modifier.background(colors.cardSubtle),
             contentAlignment = Alignment.Center
         ) {
-            Text(effectivePlaceholder, fontSize = 20.sp)
+            if (isLocked || isEncrypted) {
+                Icon(
+                    painter = AppIcons.LockVector,
+                    contentDescription = "Locked",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Text(effectivePlaceholder, fontSize = 20.sp)
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.fragment.app.FragmentActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
@@ -62,7 +63,12 @@ fun AppLockGateScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(24.dp)
         ) {
-            Text("🔒", fontSize = 64.sp)
+            Icon(
+                painter = AppIcons.LockVector,
+                contentDescription = "Locked",
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
             Text(
                 text = "ScanVault is Locked",
                 color = colors.textPrimary,
@@ -199,7 +205,12 @@ fun OnboardingAuthScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("☁️", fontSize = 18.sp)
+                        Icon(
+                            painter = AppIcons.BackupDriveVector,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = Color.White
+                        )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text("Sign in with Google", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }

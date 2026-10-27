@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -64,7 +65,7 @@ class ScanVaultGlanceWidget : GlanceAppWidget() {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }
                         WidgetActionButton(
-                            icon = "📷",
+                            icon = AppIcons.WidgetCamera,
                             label = "Scan",
                             intent = scanIntent,
                             backgroundProvider = GlanceTheme.colors.primary,
@@ -80,7 +81,7 @@ class ScanVaultGlanceWidget : GlanceAppWidget() {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }
                         WidgetActionButton(
-                            icon = "🔍",
+                            icon = AppIcons.Search,
                             label = "Search",
                             intent = searchIntent,
                             backgroundProvider = GlanceTheme.colors.secondaryContainer,
@@ -96,7 +97,7 @@ class ScanVaultGlanceWidget : GlanceAppWidget() {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }
                         WidgetActionButton(
-                            icon = "📂",
+                            icon = AppIcons.WidgetFolder,
                             label = "Recents",
                             intent = recentsIntent,
                             backgroundProvider = GlanceTheme.colors.secondaryContainer,

@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -52,7 +53,7 @@ fun ShareTargetImportDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📥", fontSize = 22.sp, modifier = Modifier.semantics { contentDescription = "Import" })
+                Text(AppIcons.Import, fontSize = 22.sp, modifier = Modifier.semantics { contentDescription = "Import" })
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Import Shared Content (${shareData.uris.size})",
@@ -173,13 +174,22 @@ fun ShareTargetImportDialog(
                                         modifier = Modifier.padding(10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            if (doc.isLocked) "🔒" else "📄",
-                                            fontSize = 14.sp,
-                                            modifier = Modifier.semantics {
-                                                contentDescription = if (doc.isLocked) "Locked Document" else "Document"
-                                            }
-                                        )
+                                        if (doc.isLocked) {
+                                            Icon(
+                                                painter = AppIcons.LockVector,
+                                                contentDescription = "Locked Document",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        } else {
+                                            Text(
+                                                AppIcons.FilePdf,
+                                                fontSize = 14.sp,
+                                                modifier = Modifier.semantics {
+                                                    contentDescription = "Document"
+                                                }
+                                            )
+                                        }
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Column {
                                             Text(doc.displayName, color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)

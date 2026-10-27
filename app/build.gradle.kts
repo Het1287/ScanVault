@@ -1,7 +1,19 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+}
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+val hasKeystore = keystorePropertiesFile.exists() && keystorePropertiesFile.isFile
+if (hasKeystore) {
+    FileInputStream(keystorePropertiesFile).use { stream ->
+        keystoreProperties.load(stream)
+    }
 }
 
 android {
@@ -20,11 +32,31 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (hasKeystore) {
+            create("release") {
+                val storeFilePath = keystoreProperties.getProperty("storeFile")?.trim()?.removeSurrounding("\"")
+                if (!storeFilePath.isNullOrBlank()) {
+                    storeFile = rootProject.file(storeFilePath)
+                }
+                storePassword = keystoreProperties.getProperty("storePassword")?.trim()?.removeSurrounding("\"")
+                keyAlias = keystoreProperties.getProperty("keyAlias")?.trim()?.removeSurrounding("\"")
+                keyPassword = keystoreProperties.getProperty("keyPassword")?.trim()?.removeSurrounding("\"")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            if (hasKeystore) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }

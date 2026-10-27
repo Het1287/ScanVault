@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.fragment.app.FragmentActivity
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -155,7 +156,7 @@ fun TrashScreen(
                         onClick = onBack,
                         modifier = Modifier.semantics { contentDescription = "Back" }
                     ) {
-                        Text("❮", color = colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(AppIcons.BackChevron, color = colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
@@ -204,7 +205,12 @@ fun TrashScreen(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("ℹ️", fontSize = 18.sp, modifier = Modifier.semantics { contentDescription = "Information" })
+                    Icon(
+                        painter = AppIcons.InfoVector,
+                        contentDescription = "Information",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "Documents in Trash are permanently purged after 30 days. Trashed documents are not synced to Google Drive.",
@@ -223,7 +229,12 @@ fun TrashScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🗑️", fontSize = 48.sp, modifier = Modifier.semantics { contentDescription = "Empty trash" })
+                        Icon(
+                            painter = AppIcons.DeleteVector,
+                            contentDescription = "Empty trash",
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("Trash is empty", color = colors.textMuted, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }

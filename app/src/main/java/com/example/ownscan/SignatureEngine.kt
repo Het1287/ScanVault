@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import java.io.File
@@ -219,7 +220,7 @@ fun SignaturePadDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("✍️", fontSize = 22.sp)
+                        Text(AppIcons.Signature, fontSize = 22.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Draw Signature",
@@ -238,7 +239,7 @@ fun SignaturePadDialog(
                             },
                             enabled = paths.isNotEmpty()
                         ) {
-                            Text("↩️ Undo", color = if (paths.isNotEmpty()) colors.accent else colors.textMuted, fontSize = 12.sp)
+                            Text("${AppIcons.Undo} Undo", color = if (paths.isNotEmpty()) colors.accent else colors.textMuted, fontSize = 12.sp)
                         }
 
                         TextButton(

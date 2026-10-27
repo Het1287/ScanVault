@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ownscan.ui.icons.AppIcons
 import java.io.File
 import java.util.Locale
 
@@ -42,7 +43,12 @@ fun DocTagEditDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🏷️", fontSize = 20.sp)
+                Icon(
+                    painter = AppIcons.TagVector,
+                    contentDescription = "Tags",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Tags for '${doc.displayName}'",
@@ -133,7 +139,7 @@ fun DocTagEditDialog(
                                         onClick = { currentTags.remove(tag) },
                                         modifier = Modifier.size(18.dp)
                                     ) {
-                                        Text("✕", fontSize = 10.sp, color = colors.accent)
+                                        Text(AppIcons.CloseGlyph, fontSize = 10.sp, color = colors.accent)
                                     }
                                 }
                             }
@@ -335,7 +341,16 @@ fun MoveCopyPagesDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Text(if (targetDoc.isLocked) "🔒" else "📄", fontSize = 18.sp)
+                                        if (targetDoc.isLocked) {
+                                            Icon(
+                                                painter = AppIcons.LockVector,
+                                                contentDescription = "Locked",
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        } else {
+                                            Text(AppIcons.FilePdf, fontSize = 18.sp)
+                                        }
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = targetDoc.displayName,

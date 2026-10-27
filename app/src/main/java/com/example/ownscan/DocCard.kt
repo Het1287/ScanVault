@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
@@ -33,6 +34,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.example.ownscan.ui.icons.AppIcons
 
 // -------------------------------------------------------------
 // DOCUMENT CARD (DYNAMIC DRIVE BACKUP / DELETE TOGGLE + CLOUD ICON)
@@ -57,7 +59,8 @@ fun DocCardWithMenu(
     onRefresh: () -> Unit,
     searchSnippet: SearchResultSnippet? = null,
     isUnlockedInSession: Boolean = false,
-    onOpenLocalBackup: () -> Unit = {}
+    onOpenLocalBackup: () -> Unit = {},
+    isGrid: Boolean = false
 ) {
     val colors = LocalAppColors.current
     val coroutineScope = rememberCoroutineScope()
@@ -117,14 +120,31 @@ fun DocCardWithMenu(
                         Text("File Size:", color = colors.textMuted, fontSize = 13.sp)
                         Text(formattedSize, color = colors.accentGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Cloud Status:", color = colors.textMuted, fontSize = 13.sp)
-                        Text(
-                            text = if (isBackedUpToDrive) "☁️ Backed up in Drive" else "Local only",
-                            color = if (isBackedUpToDrive) colors.accentGreen else colors.textMuted,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        if (isBackedUpToDrive) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(
+                                    painter = AppIcons.BackupDone,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = colors.accentGreen
+                                )
+                                Text(
+                                    text = "Backed up in Drive",
+                                    color = colors.accentGreen,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "Local only",
+                                color = colors.textMuted,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Page Count:", color = colors.textMuted, fontSize = 13.sp)
@@ -428,7 +448,18 @@ fun DocCardWithMenu(
                             border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(colors.cardBorder)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("📁 Root (Outside folders)", color = colors.textPrimary)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    painter = AppIcons.FolderVector,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text("Root (Outside folders)", color = colors.textPrimary)
+                            }
                         }
                     }
 
@@ -444,7 +475,18 @@ fun DocCardWithMenu(
                             colors = ButtonDefaults.buttonColors(containerColor = colors.cardSubtle),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("📁 ${folder.name}", color = colors.textPrimary)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    painter = AppIcons.FolderVector,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(folder.name, color = colors.textPrimary)
+                            }
                         }
                     }
                 }
@@ -476,7 +518,18 @@ fun DocCardWithMenu(
                         border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(colors.cardBorder)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("📁 Root (Outside folders)", color = colors.textPrimary)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                painter = AppIcons.FolderVector,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text("Root (Outside folders)", color = colors.textPrimary)
+                        }
                     }
 
                     userFolders.forEach { folder ->
@@ -491,7 +544,18 @@ fun DocCardWithMenu(
                             colors = ButtonDefaults.buttonColors(containerColor = colors.cardSubtle),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("📁 ${folder.name}", color = colors.textPrimary)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    painter = AppIcons.FolderVector,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(folder.name, color = colors.textPrimary)
+                            }
                         }
                     }
                 }
@@ -546,457 +610,805 @@ fun DocCardWithMenu(
         )
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = 68.dp)
-            .clip(RoundedCornerShape(26.dp))
-            .border(
-                1.5.dp,
-                if (isSelected) colors.accent else colors.cardBorder,
-                RoundedCornerShape(26.dp)
-            )
-            .combinedClickable(
-                onClick = {
-                    if (isSelectionMode) onToggleSelect() else onOpenDoc()
-                },
-                onLongClick = {
-                    onLongPress()
-                }
-            ),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) colors.accent.copy(alpha = 0.15f) else colors.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isSelectionMode) {
-                Checkbox(
-                    checked = isSelected,
-                    onCheckedChange = { onToggleSelect() },
-                    colors = CheckboxDefaults.colors(checkedColor = colors.accent)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-            }
-
-            if (doc.isLocked && !isUnlockedInSession) {
-                Surface(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(10.dp)),
-                    color = colors.cardSubtle,
-                    border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.5f))
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("🔒", fontSize = 20.sp)
-                    }
-                }
-            } else {
-                val displayFile = if (doc.isLocked && isUnlockedInSession) {
-                    val sDir = LockedDocCryptoManager.getUnlockedSessionDir(activity, doc.folderName)
-                    sDir?.listFiles { f ->
-                        val ext = f.extension.lowercase(Locale.ROOT)
-                        ext in setOf("jpg", "jpeg", "png")
-                    }?.minByOrNull { it.name } ?: doc.imageFiles.firstOrNull()
-                } else {
-                    doc.imageFiles.firstOrNull()
-                }
-                AsyncThumbnail(
-                    file = displayFile,
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(10.dp)),
-                    widthPx = 160,
-                    heightPx = 200
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f).padding(vertical = 2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = doc.displayName,
-                        color = colors.textPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (doc.isLocked) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (isUnlockedInSession) "🔓" else "🔒", fontSize = 13.sp)
-                    }
-                    if (isFavorite) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("★", color = colors.accentAmber, fontSize = 14.sp)
-                    }
-                    val uploadingDocNames by DriveBackupManager.uploadingDocFolderNames.collectAsState()
-                    val isUploadingThisDoc = uploadingDocNames.contains(doc.folderName)
-                    if (isUploadingThisDoc) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("⏳", fontSize = 13.sp)
-                    } else if (isBackedUpToDrive) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("☁️", fontSize = 13.sp)
-                    }
-                }
-                Text(
-                    text = "${doc.pageCount} page(s) • ${formatDate(doc.timestamp)}",
-                    color = colors.textMuted,
-                    fontSize = 11.sp
-                )
-
-                if (doc.tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+    val docDropdownMenu: @Composable () -> Unit = {
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier.background(colors.surface)
                     ) {
-                        doc.tags.take(3).forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = colors.accent.copy(alpha = 0.12f)
-                            ) {
-                                Text(
-                                    text = "#$tag",
-                                    color = colors.accent,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        if (doc.tags.size > 3) {
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = colors.cardSubtle
-                            ) {
-                                Text(
-                                    text = "+${doc.tags.size - 3}",
-                                    color = colors.textMuted,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (doc.expiryDate != null && doc.expiryDate > 0) {
-                    val status = ExpiryHelper.getExpiryStatus(doc.expiryDate)
-                    val (badgeText, badgeColor) = when (status) {
-                        is ExpiryStatus.Expired -> Pair("⚠️ Expired ${status.daysAgo}d ago", colors.accentRed)
-                        is ExpiryStatus.ExpiringSoon -> Pair("⏳ Exp in ${status.daysLeft}d", colors.accentAmber)
-                        is ExpiryStatus.Valid -> Pair("📅 Exp in ${status.daysLeft}d", colors.accentGreen)
-                        ExpiryStatus.None -> Pair("", colors.textMuted)
-                    }
-                    if (badgeText.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = badgeColor.copy(alpha = 0.15f),
-                            border = BorderStroke(0.5.dp, badgeColor.copy(alpha = 0.6f))
-                        ) {
-                            Text(
-                                text = badgeText,
-                                color = badgeColor,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-
-                if (searchSnippet != null && searchSnippet.snippet.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = colors.cardSubtle,
-                        border = BorderStroke(0.5.dp, colors.cardBorder),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                            Text(
-                                text = searchSnippet.matchType,
-                                color = colors.accent,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            HighlightedSnippetText(
-                                snippet = searchSnippet.snippet,
-                                query = searchSnippet.queryTerm,
-                                textColor = colors.textPrimary,
-                                highlightColor = colors.accent,
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-                }
-            }
-
-            Box {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                ) {
-                    Text("⋮", color = colors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                }
-
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                    modifier = Modifier.background(colors.surface)
-                ) {
-                    if (isBackedUpToDrive) {
-                        DropdownMenuItem(
-                            text = { Text("Delete from Drive", color = MaterialTheme.colorScheme.error) },
-                            leadingIcon = { Text("🗑️") },
-                            onClick = {
-                                menuExpanded = false
-                                val account = DriveBackupManager.getSignedInAccount(activity)
-                                if (account == null) {
-                                    Toast.makeText(activity, "Please sign into Google in Settings first", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(activity, "Deleting '${doc.displayName}' from Drive...", Toast.LENGTH_SHORT).show()
-                                    coroutineScope.launch {
-                                        when (val res = DriveBackupManager.deleteSingleDocFromDrive(activity, account, doc)) {
-                                            is DriveResult.Success -> {
-                                                onBackupStatusChanged(false)
-                                                Toast.makeText(activity, "'${doc.displayName}' deleted from Drive!", Toast.LENGTH_SHORT).show()
-                                                onRefresh()
-                                            }
-                                            is DriveResult.Failure -> {
-                                                Toast.makeText(activity, "Failed to delete: ${res.displayMessage}", Toast.LENGTH_LONG).show()
+                        if (isBackedUpToDrive) {
+                            DropdownMenuItem(
+                                text = { Text("Delete from Drive", color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = {
+                                    Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            painter = AppIcons.DeleteVector,
+                                            contentDescription = "Delete from Drive",
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    val account = DriveBackupManager.getSignedInAccount(activity)
+                                    if (account == null) {
+                                        Toast.makeText(activity, "Please sign into Google in Settings first", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(activity, "Deleting '${doc.displayName}' from Drive...", Toast.LENGTH_SHORT).show()
+                                        coroutineScope.launch {
+                                            when (val res = DriveBackupManager.deleteSingleDocFromDrive(activity, account, doc)) {
+                                                is DriveResult.Success -> {
+                                                    onBackupStatusChanged(false)
+                                                    Toast.makeText(activity, "'${doc.displayName}' deleted from Drive!", Toast.LENGTH_SHORT).show()
+                                                    onRefresh()
+                                                }
+                                                is DriveResult.Failure -> {
+                                                    Toast.makeText(activity, "Failed to delete: ${res.displayMessage}", Toast.LENGTH_LONG).show()
+                                                }
                                             }
                                         }
                                     }
                                 }
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text("Backup to Drive", color = colors.textPrimary) },
+                                leadingIcon = {
+                                    Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            painter = AppIcons.BackupDriveVector,
+                                            contentDescription = "Backup to Drive",
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    if (doc.isLocked) {
+                                        showLockedCloudBackupDialog = true
+                                        return@DropdownMenuItem
+                                    }
+                                    val account = DriveBackupManager.getSignedInAccount(activity)
+                                    if (account == null) {
+                                        Toast.makeText(activity, "Please sign into Google in Settings first", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(activity, "Backing up '${doc.displayName}'...", Toast.LENGTH_SHORT).show()
+                                        coroutineScope.launch {
+                                            when (val res = DriveBackupManager.backupSingleDoc(activity, account, doc, forceUpload = true)) {
+                                                is DriveResult.Success -> {
+                                                    onBackupStatusChanged(true)
+                                                    Toast.makeText(activity, "'${doc.displayName}' backed up to Drive!", Toast.LENGTH_SHORT).show()
+                                                    onRefresh()
+                                                }
+                                                is DriveResult.Failure -> {
+                                                    Toast.makeText(activity, "Backup failed: ${res.displayMessage}", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        }
+    
+                        DropdownMenuItem(
+                            text = { Text("File Info", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.InfoVector,
+                                        contentDescription = "File Info",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                showInfoDialog = true
                             }
                         )
-                    } else {
+    
                         DropdownMenuItem(
-                            text = { Text("Backup to Drive", color = colors.textPrimary) },
-                            leadingIcon = { Text("☁️") },
+                            text = { Text("Share", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.ShareVector,
+                                        contentDescription = "Share",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
                             onClick = {
                                 menuExpanded = false
                                 if (doc.isLocked) {
-                                    showLockedCloudBackupDialog = true
-                                    return@DropdownMenuItem
-                                }
-                                val account = DriveBackupManager.getSignedInAccount(activity)
-                                if (account == null) {
-                                    Toast.makeText(activity, "Please sign into Google in Settings first", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(activity, "Backing up '${doc.displayName}'...", Toast.LENGTH_SHORT).show()
-                                    coroutineScope.launch {
-                                        when (val res = DriveBackupManager.backupSingleDoc(activity, account, doc, forceUpload = true)) {
-                                            is DriveResult.Success -> {
-                                                onBackupStatusChanged(true)
-                                                Toast.makeText(activity, "'${doc.displayName}' backed up to Drive!", Toast.LENGTH_SHORT).show()
-                                                onRefresh()
-                                            }
-                                            is DriveResult.Failure -> {
-                                                Toast.makeText(activity, "Backup failed: ${res.displayMessage}", Toast.LENGTH_LONG).show()
-                                            }
+                                    BiometricAuthManager.authenticate(
+                                        activity = activity as FragmentActivity,
+                                        title = "Unlock ${doc.displayName}",
+                                        subtitle = "Biometric authentication required to share locked document",
+                                        onSuccess = {
+                                            showShareDialog = true
+                                        },
+                                        onError = { err ->
+                                            Toast.makeText(activity, err.ifBlank { "Authentication required to share" }, Toast.LENGTH_SHORT).show()
                                         }
+                                    )
+                                } else {
+                                    showShareDialog = true
+                                }
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text("Save to device", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.SaveDeviceVector,
+                                        contentDescription = "Save to device",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                if (doc.isLocked) {
+                                    BiometricAuthManager.authenticate(
+                                        activity = activity as FragmentActivity,
+                                        title = "Unlock ${doc.displayName}",
+                                        onSuccess = {
+                                            showSaveToDeviceDialog = true
+                                        },
+                                        onError = { err ->
+                                            Toast.makeText(activity, err, Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                } else {
+                                    showSaveToDeviceDialog = true
+                                }
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+                                    color = colors.textPrimary
+                                )
+                            },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.FavoriteVector,
+                                        contentDescription = if (isFavorite) "Remove from Favorites" else "Add to Favorites",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onToggleFavorite()
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text("Move", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.MoveVector,
+                                        contentDescription = "Move",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                showMoveDialog = true
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text("Copy", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.CopyVector,
+                                        contentDescription = "Copy",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                showCopyDialog = true
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text("Rename", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.RenameVector,
+                                        contentDescription = "Rename",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                showRenameDialog = true
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text("Tags", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.TagVector,
+                                        contentDescription = "Tags",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                showTagDialog = true
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text(if (doc.expiryDate != null && doc.expiryDate > 0) "Edit Expiry Date" else "Set Expiry Date", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.ExpiryVector,
+                                        contentDescription = "Expiry Date",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                showExpiryDialog = true
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text("Edit", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.EditVector,
+                                        contentDescription = "Edit",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                doc.imageFiles.firstOrNull()?.let { onEditPage(it) }
+                            }
+                        )
+    
+                        DropdownMenuItem(
+                            text = { Text(if (doc.isLocked) "Unlock document" else "Lock document", color = colors.textPrimary) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = if (doc.isLocked) AppIcons.UnlockVector else AppIcons.LockVector,
+                                        contentDescription = if (doc.isLocked) "Unlock document" else "Lock document",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                if (doc.isLocked) {
+                                    BiometricAuthManager.authenticate(
+                                        activity = activity as FragmentActivity,
+                                        title = "Unlock ${doc.displayName}",
+                                        onSuccess = {
+                                            coroutineScope.launch {
+                                                val ok = DocumentRepository.updateDocLockStatus(activity, doc, false)
+                                                if (ok) {
+                                                    onRefresh()
+                                                    Toast.makeText(activity, "'${doc.displayName}' unlocked", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    Toast.makeText(activity, "Failed to unlock '${doc.displayName}'", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        },
+                                        onError = { err ->
+                                            Toast.makeText(activity, err, Toast.LENGTH_LONG).show()
+                                        }
+                                    )
+                                } else {
+                                    if (!BiometricAuthManager.isAuthAvailable(activity)) {
+                                        showDeviceLockRequiredDialog = true
+                                    } else {
+                                        showLockGateDialog = true
                                     }
                                 }
                             }
                         )
+    
+                        DropdownMenuItem(
+                            text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = {
+                                Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.DeleteVector,
+                                        contentDescription = "Delete",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                if (doc.isLocked) {
+                                    BiometricAuthManager.authenticate(
+                                        activity = activity as FragmentActivity,
+                                        title = "Delete '${doc.displayName}'",
+                                        subtitle = "Verify biometric or device credential to delete locked document",
+                                        onSuccess = {
+                                            showDeleteConfirm = true
+                                        },
+                                        onError = { err ->
+                                            Toast.makeText(activity, "Authentication failed: $err", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                } else {
+                                    showDeleteConfirm = true
+                                }
+                            }
+                        )
+                    }
+    }
+
+    if (isGrid) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .border(
+                    1.5.dp,
+                    if (isSelected) colors.accent else colors.cardBorder,
+                    RoundedCornerShape(16.dp)
+                )
+                .combinedClickable(
+                    onClick = {
+                        if (isSelectionMode) onToggleSelect() else onOpenDoc()
+                    },
+                    onLongClick = {
+                        onLongPress()
+                    }
+                ),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isSelected) colors.accent.copy(alpha = 0.15f) else colors.surface
+            )
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1.1f)
+                        .background(colors.cardSubtle),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (doc.isLocked && !isUnlockedInSession) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = colors.cardSubtle
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = AppIcons.LockVector,
+                                    contentDescription = "Locked",
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    } else {
+                        val displayFile = if (doc.isLocked && isUnlockedInSession) {
+                            val sDir = LockedDocCryptoManager.getUnlockedSessionDir(activity, doc.folderName)
+                            sDir?.listFiles { f ->
+                                val ext = f.extension.lowercase(Locale.ROOT)
+                                ext in setOf("jpg", "jpeg", "png")
+                            }?.minByOrNull { it.name } ?: doc.imageFiles.firstOrNull()
+                        } else {
+                            doc.imageFiles.firstOrNull()
+                        }
+                        AsyncThumbnail(
+                            file = displayFile,
+                            modifier = Modifier.fillMaxSize(),
+                            widthPx = 280,
+                            heightPx = 280
+                        )
                     }
 
-                    DropdownMenuItem(
-                        text = { Text("File Info", color = colors.textPrimary) },
-                        leadingIcon = { Text("ℹ️") },
-                        onClick = {
-                            menuExpanded = false
-                            showInfoDialog = true
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Share", color = colors.textPrimary) },
-                        leadingIcon = { Text("📤") },
-                        onClick = {
-                            menuExpanded = false
-                            if (doc.isLocked) {
-                                BiometricAuthManager.authenticate(
-                                    activity = activity as FragmentActivity,
-                                    title = "Unlock ${doc.displayName}",
-                                    subtitle = "Biometric authentication required to share locked document",
-                                    onSuccess = {
-                                        showShareDialog = true
-                                    },
-                                    onError = { err ->
-                                        Toast.makeText(activity, err.ifBlank { "Authentication required to share" }, Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            } else {
-                                showShareDialog = true
-                            }
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Save to device", color = colors.textPrimary) },
-                        leadingIcon = { Text("💾") },
-                        onClick = {
-                            menuExpanded = false
-                            if (doc.isLocked) {
-                                BiometricAuthManager.authenticate(
-                                    activity = activity as FragmentActivity,
-                                    title = "Unlock ${doc.displayName}",
-                                    onSuccess = {
-                                        showSaveToDeviceDialog = true
-                                    },
-                                    onError = { err ->
-                                        Toast.makeText(activity, err, Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            } else {
-                                showSaveToDeviceDialog = true
-                            }
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                if (isFavorite) "Remove from Favorites" else "Add to Favorites",
-                                color = colors.textPrimary
+                    if (isSelectionMode) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(6.dp)
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = { onToggleSelect() },
+                                colors = CheckboxDefaults.colors(checkedColor = colors.accent)
                             )
-                        },
-                        leadingIcon = { Text(if (isFavorite) "★" else "☆") },
-                        onClick = {
-                            menuExpanded = false
-                            onToggleFavorite()
                         }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Move", color = colors.textPrimary) },
-                        leadingIcon = { Text("📦") },
-                        onClick = {
-                            menuExpanded = false
-                            showMoveDialog = true
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Copy", color = colors.textPrimary) },
-                        leadingIcon = { Text("📋") },
-                        onClick = {
-                            menuExpanded = false
-                            showCopyDialog = true
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Rename", color = colors.textPrimary) },
-                        leadingIcon = { Text("✏️") },
-                        onClick = {
-                            menuExpanded = false
-                            showRenameDialog = true
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Tags", color = colors.textPrimary) },
-                        leadingIcon = { Text("🏷️") },
-                        onClick = {
-                            menuExpanded = false
-                            showTagDialog = true
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text(if (doc.expiryDate != null && doc.expiryDate > 0) "Edit Expiry Date" else "Set Expiry Date", color = colors.textPrimary) },
-                        leadingIcon = { Text("📅") },
-                        onClick = {
-                            menuExpanded = false
-                            showExpiryDialog = true
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Edit", color = colors.textPrimary) },
-                        leadingIcon = { Text("🎨") },
-                        onClick = {
-                            menuExpanded = false
-                            doc.imageFiles.firstOrNull()?.let { onEditPage(it) }
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text(if (doc.isLocked) "Unlock Document" else "Lock Document", color = colors.textPrimary) },
-                        leadingIcon = { Text(if (doc.isLocked) "🔓" else "🔒") },
-                        onClick = {
-                            menuExpanded = false
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isFavorite) {
+                                Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.FavoriteVector,
+                                        contentDescription = "Favorite",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = colors.accentAmber
+                                    )
+                                }
+                            }
                             if (doc.isLocked) {
-                                BiometricAuthManager.authenticate(
-                                    activity = activity as FragmentActivity,
-                                    title = "Unlock ${doc.displayName}",
-                                    onSuccess = {
-                                        coroutineScope.launch {
-                                            val ok = DocumentRepository.updateDocLockStatus(activity, doc, false)
-                                            if (ok) {
-                                                onRefresh()
-                                                Toast.makeText(activity, "'${doc.displayName}' unlocked", Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                Toast.makeText(activity, "Failed to unlock '${doc.displayName}'", Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                    },
-                                    onError = { err ->
-                                        Toast.makeText(activity, err, Toast.LENGTH_LONG).show()
-                                    }
-                                )
-                            } else {
-                                if (!BiometricAuthManager.isAuthAvailable(activity)) {
-                                    showDeviceLockRequiredDialog = true
-                                } else {
-                                    showLockGateDialog = true
+                                Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = if (isUnlockedInSession) AppIcons.UnlockVector else AppIcons.LockVector,
+                                        contentDescription = if (isUnlockedInSession) "Unlocked" else "Locked",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            val uploadingDocNames by DriveBackupManager.uploadingDocFolderNames.collectAsState()
+                            val isUploadingThisDoc = uploadingDocNames.contains(doc.folderName)
+                            if (isUploadingThisDoc) {
+                                Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.TimerVector,
+                                        contentDescription = "Uploading",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            } else if (isBackedUpToDrive) {
+                                Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = AppIcons.BackupDone,
+                                        contentDescription = "Backed up to Drive",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }
-                    )
+                    }
+                }
 
-                    DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = { Text("🗑️") },
-                        onClick = {
-                            menuExpanded = false
-                            if (doc.isLocked) {
-                                BiometricAuthManager.authenticate(
-                                    activity = activity as FragmentActivity,
-                                    title = "Delete '${doc.displayName}'",
-                                    subtitle = "Verify biometric or device credential to delete locked document",
-                                    onSuccess = {
-                                        showDeleteConfirm = true
-                                    },
-                                    onError = { err ->
-                                        Toast.makeText(activity, "Authentication failed: $err", Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            } else {
-                                showDeleteConfirm = true
-                            }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = doc.displayName,
+                            color = colors.textPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${doc.pageCount} p • ${formatDate(doc.timestamp)}",
+                            color = colors.textMuted,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { menuExpanded = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Text(
+                                text = "⋮",
+                                color = colors.textPrimary,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                    )
+                        docDropdownMenu()
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("›", color = colors.textMuted, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        }
+    } else {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 68.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .border(
+                    1.5.dp,
+                    if (isSelected) colors.accent else colors.cardBorder,
+                    RoundedCornerShape(26.dp)
+                )
+                .combinedClickable(
+                    onClick = {
+                        if (isSelectionMode) onToggleSelect() else onOpenDoc()
+                    },
+                    onLongClick = {
+                        onLongPress()
+                    }
+                ),
+            shape = RoundedCornerShape(26.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isSelected) colors.accent.copy(alpha = 0.15f) else colors.surface
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isSelectionMode) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onToggleSelect() },
+                        colors = CheckboxDefaults.colors(checkedColor = colors.accent)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+    
+                if (doc.isLocked && !isUnlockedInSession) {
+                    Surface(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        color = colors.cardSubtle,
+                        border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.5f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                painter = AppIcons.LockVector,
+                                contentDescription = "Locked",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                } else {
+                    val displayFile = if (doc.isLocked && isUnlockedInSession) {
+                        val sDir = LockedDocCryptoManager.getUnlockedSessionDir(activity, doc.folderName)
+                        sDir?.listFiles { f ->
+                            val ext = f.extension.lowercase(Locale.ROOT)
+                            ext in setOf("jpg", "jpeg", "png")
+                        }?.minByOrNull { it.name } ?: doc.imageFiles.firstOrNull()
+                    } else {
+                        doc.imageFiles.firstOrNull()
+                    }
+                    AsyncThumbnail(
+                        file = displayFile,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        widthPx = 160,
+                        heightPx = 200
+                    )
+                }
+    
+                Spacer(modifier = Modifier.width(12.dp))
+    
+                Column(modifier = Modifier.weight(1f).padding(vertical = 2.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = doc.displayName,
+                            color = colors.textPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (doc.isLocked) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = if (isUnlockedInSession) AppIcons.UnlockVector else AppIcons.LockVector,
+                                    contentDescription = if (isUnlockedInSession) "Unlocked" else "Locked",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        if (isFavorite) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = AppIcons.FavoriteVector,
+                                    contentDescription = "Favorite",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = colors.accentAmber
+                                )
+                            }
+                        }
+                        val uploadingDocNames by DriveBackupManager.uploadingDocFolderNames.collectAsState()
+                        val isUploadingThisDoc = uploadingDocNames.contains(doc.folderName)
+                        if (isUploadingThisDoc) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = AppIcons.TimerVector,
+                                    contentDescription = "Uploading",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else if (isBackedUpToDrive) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = AppIcons.BackupDone,
+                                    contentDescription = "Backed up to Drive",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = "${doc.pageCount} page(s) • ${formatDate(doc.timestamp)}",
+                        color = colors.textMuted,
+                        fontSize = 11.sp
+                    )
+    
+                    if (doc.tags.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            doc.tags.take(3).forEach { tag ->
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = colors.accent.copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        text = "#$tag",
+                                        color = colors.accent,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            if (doc.tags.size > 3) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = colors.cardSubtle
+                                ) {
+                                    Text(
+                                        text = "+${doc.tags.size - 3}",
+                                        color = colors.textMuted,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+    
+                    if (doc.expiryDate != null && doc.expiryDate > 0) {
+                        val status = ExpiryHelper.getExpiryStatus(doc.expiryDate)
+                        val (badgeLabel, badgeIcon, badgeColor) = when (status) {
+                            is ExpiryStatus.Expired -> Triple("⚠️ Expired ${status.daysAgo}d ago", null, colors.accentRed)
+                            is ExpiryStatus.ExpiringSoon -> Triple("Exp in ${status.daysLeft}d", AppIcons.TimerVector, colors.accentAmber)
+                            is ExpiryStatus.Valid -> Triple("Exp in ${status.daysLeft}d", AppIcons.ExpiryVector, colors.accentGreen)
+                            ExpiryStatus.None -> Triple("", null, colors.textMuted)
+                        }
+                        if (badgeLabel.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = badgeColor.copy(alpha = 0.15f),
+                                border = BorderStroke(0.5.dp, badgeColor.copy(alpha = 0.6f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (badgeIcon != null) {
+                                        Icon(
+                                            painter = badgeIcon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = badgeColor
+                                        )
+                                    }
+                                    Text(
+                                        text = badgeLabel,
+                                        color = badgeColor,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+    
+                    if (searchSnippet != null && searchSnippet.snippet.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = colors.cardSubtle,
+                            border = BorderStroke(0.5.dp, colors.cardBorder),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                Text(
+                                    text = searchSnippet.matchType,
+                                    color = colors.accent,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                HighlightedSnippetText(
+                                    snippet = searchSnippet.snippet,
+                                    query = searchSnippet.queryTerm,
+                                    textColor = colors.textPrimary,
+                                    highlightColor = colors.accent,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+    
+                Box {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                    ) {
+                        Text("⋮", color = colors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    }
+    
+                    docDropdownMenu()
+                }
+    
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("›", color = colors.textMuted, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -1134,7 +1546,14 @@ fun SharePdfRenameDialog(
                         colors = CheckboxDefaults.colors(checkedColor = colors.accent)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("🔒 Protect PDF with Password", color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Icon(
+                        painter = AppIcons.LockVector,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Protect PDF with Password", color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 if (protectPdfWithPassword) {

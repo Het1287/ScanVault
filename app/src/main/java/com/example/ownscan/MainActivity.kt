@@ -1,5 +1,6 @@
 package com.example.ownscan
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -13,7 +14,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 
 class MainActivity : FragmentActivity() {
@@ -21,6 +25,9 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
             activeIntent.value = intent
@@ -73,6 +80,21 @@ class MainActivity : FragmentActivity() {
                     )
                 } else {
                     base
+                }
+            }
+
+            val view = LocalView.current
+            if (!view.isInEditMode) {
+                SideEffect {
+                    val window = (view.context as Activity).window
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    controller.isAppearanceLightStatusBars = !isDarkTheme
+                    controller.isAppearanceLightNavigationBars = !isDarkTheme
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        window.isNavigationBarContrastEnforced = false
+                    }
+                    @Suppress("DEPRECATION")
+                    window.navigationBarColor = appColors.surface.toArgb()
                 }
             }
 

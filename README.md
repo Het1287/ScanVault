@@ -7,7 +7,6 @@ ScanVault is a free Android app that turns your phone into a private document sc
 ![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
 
 ---
 

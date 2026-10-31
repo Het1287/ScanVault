@@ -32,13 +32,6 @@ Many scanner apps push you to upload documents to their cloud, show ads, or ask 
 
 ---
 
-## 📸 Screenshots
-
-<img width="941" height="1672" alt="file_000000000c00821188eebebc8015cffe" src="https://github.com/user-attachments/assets/bc3780af-1f1a-4ace-90f0-ea692f3c5b09" />
-
-
----
-
 ## ✨ What can it do?
 
 ### Scan and edit
